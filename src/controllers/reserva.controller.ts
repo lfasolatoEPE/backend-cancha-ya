@@ -1,15 +1,11 @@
 import { Request, Response } from 'express';
+import { procesarReserva } from '../services/reserva.service';
 
-export const reservarCancha = (req: Request, res: Response) => {
-  const { usuarioId, canchaId, fecha } = req.body;
-
-  // Simular validación de deuda
-  const tieneDeuda = false;
-
-  if (tieneDeuda) {
-    return res.status(403).json({ mensaje: 'No podés reservar. Tenés deuda pendiente.' });
+export const crearReserva = (req: Request, res: Response) => {
+  try {
+    const resultado = procesarReserva(req.body);
+    res.status(201).json(resultado);
+  } catch (error) {
+    res.status(400).json({ mensaje: 'Error al reservar', error });
   }
-
-  // Simular reserva exitosa
-  return res.status(200).json({ mensaje: 'Reserva confirmada', canchaId, fecha });
 };
