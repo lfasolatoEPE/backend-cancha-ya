@@ -1,15 +1,15 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
     "module": "commonjs",
+    "target": "ES2020",
+    "moduleResolution": "node",
     "rootDir": "src",
     "outDir": "dist",
-    "strict": true,
     "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "strict": true
   }
 }
+
 // {
 //   "compilerOptions": {
 //     /* Visit https://aka.ms/tsconfig to read more about this file */
