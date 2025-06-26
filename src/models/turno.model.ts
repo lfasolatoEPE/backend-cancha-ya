@@ -1,10 +1,9 @@
-export class Reserva {
+export class Turno {
   constructor(
     public id: string,
-    public usuarioId: string,
     public canchaId: string,
     public fecha: string, // YYYY-MM-DD
     public hora: string,  // HH:mm
-    public confirmada: boolean = false
+    public disponible: boolean = true
   ) {}
 }
