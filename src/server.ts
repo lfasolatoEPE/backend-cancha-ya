@@ -10,4 +10,7 @@ AppDataSource.initialize()
       console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
     });
   })
-  .catch((error) => console.error('❌ Error al conectar a la base de datos', error));
+  .catch((error) => {
+    console.error('❌ Error al conectar a la base de datos', error);
+    process.exit(1);
+  });

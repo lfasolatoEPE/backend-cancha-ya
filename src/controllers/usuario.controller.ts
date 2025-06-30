@@ -1,20 +1,38 @@
 import { Request, Response } from 'express';
-import { crearUsuario, listarUsuarios } from '../services/usuario.service';
+import { crearUsuario, listarUsuarios, actualizarUsuario } from '../services/usuario.service';
 
-export const registrarUsuario = (req: Request, res: Response) => {
+export const registrarUsuario = async (req: Request, res: Response) => {
   try {
-    const usuario = crearUsuario(req.body);
+    const usuario = await crearUsuario(req.body);
     res.status(201).json(usuario);
-  } catch (error) {
-    res.status(400).json({ mensaje: 'Error al registrar usuario', error });
+  } catch (error: any) {
+    res.status(400).json({ mensaje: error.message });
   }
 };
 
-export const obtenerUsuarios = (_req: Request, res: Response) => {
+export const obtenerUsuarios = async (_req: Request, res: Response) => {
   try {
-    const usuarios = listarUsuarios();
+    const usuarios = await listarUsuarios();
     res.status(200).json(usuarios);
-  } catch (error) {
-    res.status(500).json({ mensaje: 'Error al obtener usuarios', error });
+  } catch (error: any) {
+    res.status(500).json({ mensaje: error.message });
+  }
+};
+
+export const actualizarUsuarioHandler = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const usuarioToken = (req as any).usuario;
+
+    // Solo el propio usuario o admin
+    if (usuarioToken.rol !== 'admin' && usuarioToken.id !== id) {
+      res.status(403).json({ mensaje: 'No tienes permiso para modificar este usuario' });
+      return;
+    }
+
+    const usuario = await actualizarUsuario(id, req.body);
+    res.json(usuario);
+  } catch (error: any) {
+    res.status(400).json({ mensaje: error.message });
   }
 };
