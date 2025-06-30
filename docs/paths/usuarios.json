@@ -1,0 +1,73 @@
+{
+  "/usuarios/registro": {
+    "post": {
+      "summary": "Registrar un nuevo usuario",
+      "tags": ["Usuarios"],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "nombre": { "type": "string" },
+                "email": { "type": "string" },
+                "password": { "type": "string" }
+              },
+              "required": ["nombre", "email", "password"]
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": { "description": "Usuario creado correctamente" },
+        "400": { "description": "Datos inválidos" }
+      }
+    }
+  },
+  "/usuarios": {
+    "get": {
+      "summary": "Listar todos los usuarios",
+      "tags": ["Usuarios"],
+      "security": [{ "bearerAuth": [] }],
+      "responses": {
+        "200": { "description": "Lista de usuarios" },
+        "401": { "description": "No autorizado" }
+      }
+    }
+  },
+  "/usuarios/{id}": {
+    "patch": {
+      "summary": "Actualizar datos de un usuario",
+      "tags": ["Usuarios"],
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "nombre": { "type": "string" },
+                "email": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": { "description": "Usuario actualizado" },
+        "400": { "description": "Datos inválidos" },
+        "401": { "description": "No autorizado" }
+      }
+    }
+  }
+}

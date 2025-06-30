@@ -1,0 +1,61 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API CanchaYa",
+    "version": "1.0.0",
+    "description": "Documentación de la API para gestión de usuarios, canchas, clubes, reservas y más."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [
+  {
+    "name": "Usuarios",
+    "description": "Operaciones relacionadas con los usuarios"
+  },
+  {
+    "name": "Auth",
+    "description": "Login y autenticación"
+  },
+  {
+    "name": "Reservas",
+    "description": "Gestión de reservas de canchas"
+  },
+  {
+    "name": "Canchas",
+    "description": "Administración de canchas"
+  },
+  {
+    "name": "Clubes",
+    "description": "Administración de clubes"
+  },
+  {
+    "name": "Deportes",
+    "description": "Gestión de deportes"
+  },
+  {
+    "name": "Deudas",
+    "description": "Administración de deudas"
+  },
+  {
+    "name": "Horarios",
+    "description": "Disponibilidad de horarios"
+  },
+  {
+    "name": "Valoraciones",
+    "description": "Opiniones y calificaciones"
+  }
+],
+  "paths": {}
+}

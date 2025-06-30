@@ -1,0 +1,148 @@
+{
+  "/api/reportes/reservas": {
+    "get": {
+      "tags": ["Reportes"],
+      "summary": "Obtener reservas por rango de fechas",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "desde",
+          "schema": { "type": "string", "format": "date" },
+          "required": true,
+          "description": "Fecha de inicio (YYYY-MM-DD)"
+        },
+        {
+          "in": "query",
+          "name": "hasta",
+          "schema": { "type": "string", "format": "date" },
+          "required": true,
+          "description": "Fecha de fin (YYYY-MM-DD)"
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Listado de reservas",
+          "content": {
+            "application/json": {
+              "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Reserva" } }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/reportes/ingresos": {
+    "get": {
+      "tags": ["Reportes"],
+      "summary": "Obtener ingresos totales por club",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "desde",
+          "schema": { "type": "string", "format": "date" },
+          "required": true
+        },
+        {
+          "in": "query",
+          "name": "hasta",
+          "schema": { "type": "string", "format": "date" },
+          "required": true
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Ingresos por club",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "club": { "type": "string" },
+                    "ingresos": { "type": "number" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/reportes/canchas-top": {
+    "get": {
+      "tags": ["Reportes"],
+      "summary": "Obtener canchas más reservadas",
+      "responses": {
+        "200": {
+          "description": "Top canchas",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "cancha": { "type": "string" },
+                    "cantidad": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/reportes/usuarios-top": {
+    "get": {
+      "tags": ["Reportes"],
+      "summary": "Obtener usuarios con más reservas",
+      "responses": {
+        "200": {
+          "description": "Top usuarios",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "usuario": { "type": "string" },
+                    "cantidad": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/reportes/ocupacion-horarios": {
+    "get": {
+      "tags": ["Reportes"],
+      "summary": "Obtener ocupación por horario",
+      "responses": {
+        "200": {
+          "description": "Ocupación por hora",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "hora": { "type": "string" },
+                    "cantidad": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

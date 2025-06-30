@@ -2,22 +2,13 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Cancha } from './Cancha.entity';
 
 @Entity()
-export class Club {
+export class Deporte {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Column()
   nombre!: string;
 
-  @Column()
-  direccion!: string;
-
-  @Column()
-  telefono!: string;
-
-  @Column()
-  email!: string;
-
-  @OneToMany(() => Cancha, cancha => cancha.club)
+  @OneToMany(() => Cancha, cancha => cancha.deporte)
   canchas!: Cancha[];
 }

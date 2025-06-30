@@ -1,0 +1,111 @@
+{
+  "/canchas": {
+    "get": {
+      "summary": "Listar canchas",
+      "tags": ["Canchas"],
+      "responses": {
+        "200": { "description": "Lista de canchas" }
+      }
+    },
+    "post": {
+      "summary": "Crear una cancha",
+      "tags": ["Canchas"],
+      "security": [{ "bearerAuth": [] }],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "nombre": { "type": "string" },
+                "ubicacion": { "type": "string" },
+                "tipoSuperficie": { "type": "string" },
+                "precioPorHora": { "type": "number" },
+                "deporteId": { "type": "string", "format": "uuid" },
+                "clubId": { "type": "string", "format": "uuid" }
+              },
+              "required": ["nombre", "ubicacion", "tipoSuperficie", "precioPorHora"]
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": { "description": "Cancha creada" },
+        "400": { "description": "Datos inválidos" },
+        "401": { "description": "No autorizado" }
+      }
+    }
+  },
+  "/canchas/{id}": {
+    "get": {
+      "summary": "Obtener cancha por ID",
+      "tags": ["Canchas"],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "responses": {
+        "200": { "description": "Cancha encontrada" },
+        "404": { "description": "No encontrada" }
+      }
+    },
+    "patch": {
+      "summary": "Actualizar cancha",
+      "tags": ["Canchas"],
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "nombre": { "type": "string" },
+                "ubicacion": { "type": "string" },
+                "tipoSuperficie": { "type": "string" },
+                "precioPorHora": { "type": "number" },
+                "deporteId": { "type": "string", "format": "uuid" },
+                "clubId": { "type": "string", "format": "uuid" },
+                "activa": { "type": "boolean" }
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": { "description": "Cancha actualizada" },
+        "400": { "description": "Datos inválidos" },
+        "401": { "description": "No autorizado" }
+      }
+    },
+    "delete": {
+      "summary": "Eliminar cancha",
+      "tags": ["Canchas"],
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "responses": {
+        "200": { "description": "Cancha eliminada" }
+      }
+    }
+  }
+}

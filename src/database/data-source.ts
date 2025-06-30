@@ -4,11 +4,12 @@ import { Usuario } from '../entities/Usuario.entity';
 import { Cancha } from '../entities/Cancha.entity';
 import { Reserva } from '../entities/Reserva.entity';
 import { Club } from '../entities/Club.entity';
-import { Comentario } from '../entities/Comentario.entity';
 import { Deuda } from '../entities/Deuda.entity';
+import { Deporte } from '../entities/Deporte.entity';
+import { Horario } from '../entities/Horario.entity';
+import { Valoracion } from '../entities/Valoracion.entity';
 
 import dotenv from 'dotenv';
-
 dotenv.config();
 
 export const AppDataSource = new DataSource({
@@ -19,8 +20,17 @@ export const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   synchronize: true,
-  logging: true,
-  entities: [Usuario, Cancha, Reserva, Club, Comentario, Deuda],
+  logging: false,
+  entities: [
+    Usuario,
+    Cancha,
+    Reserva,
+    Club,
+    Deuda,
+    Deporte,
+    Horario,
+    Valoracion
+  ],
   migrations: [],
   subscribers: [],
 });

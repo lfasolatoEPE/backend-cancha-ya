@@ -1,7 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany } from 'typeorm';
-import { Club } from './Club.entity';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne } from 'typeorm';
 import { Reserva } from './Reserva.entity';
-import { Comentario } from './Comentario.entity';
+import { Deporte } from './Deporte.entity';
+import { Horario } from './Horario.entity';
+import { Valoracion } from './Valoracion.entity';
+import { Club } from './Club.entity';
 
 @Entity()
 export class Cancha {
@@ -12,20 +14,30 @@ export class Cancha {
   nombre!: string;
 
   @Column()
-  deporte!: string;
+  ubicacion!: string;
 
-  @Column()
+  @Column('decimal', { precision: 10, scale: 2 })
   precioPorHora!: number;
 
-  @Column({ default: true })
-  habilitada!: boolean;
+  @Column()
+  tipoSuperficie!: string;
 
-  @ManyToOne(() => Club, club => club.canchas)
-  club!: Club;
+  @Column({ default: true })
+  activa!: boolean;
 
   @OneToMany(() => Reserva, reserva => reserva.cancha)
   reservas!: Reserva[];
 
-  @OneToMany(() => Comentario, comentario => comentario.cancha)
-  comentarios!: Comentario[];
+  @ManyToOne(() => Deporte, { nullable: true })
+  deporte!: Deporte;
+
+  @OneToMany(() => Horario, horario => horario.cancha)
+  horarios!: Horario[];
+
+  @OneToMany(() => Valoracion, valoracion => valoracion.cancha)
+  valoraciones!: Valoracion[];
+
+  @ManyToOne(() => Club, club => club.canchas)
+  club!: Club;
+
 }

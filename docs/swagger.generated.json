@@ -1,0 +1,1495 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API CanchaYa",
+    "version": "1.0.0",
+    "description": "Documentación de la API para gestión de usuarios, canchas, clubes, reservas y más."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Usuarios",
+      "description": "Operaciones relacionadas con los usuarios"
+    },
+    {
+      "name": "Auth",
+      "description": "Login y autenticación"
+    },
+    {
+      "name": "Reservas",
+      "description": "Gestión de reservas de canchas"
+    },
+    {
+      "name": "Canchas",
+      "description": "Administración de canchas"
+    },
+    {
+      "name": "Clubes",
+      "description": "Administración de clubes"
+    },
+    {
+      "name": "Deportes",
+      "description": "Gestión de deportes"
+    },
+    {
+      "name": "Deudas",
+      "description": "Administración de deudas"
+    },
+    {
+      "name": "Horarios",
+      "description": "Disponibilidad de horarios"
+    },
+    {
+      "name": "Valoraciones",
+      "description": "Opiniones y calificaciones"
+    }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "summary": "Iniciar sesión",
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token generado"
+          },
+          "401": {
+            "description": "Credenciales inválidas"
+          }
+        }
+      }
+    },
+    "/canchas": {
+      "get": {
+        "summary": "Listar canchas",
+        "tags": [
+          "Canchas"
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de canchas"
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear una cancha",
+        "tags": [
+          "Canchas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "ubicacion": {
+                    "type": "string"
+                  },
+                  "tipoSuperficie": {
+                    "type": "string"
+                  },
+                  "precioPorHora": {
+                    "type": "number"
+                  },
+                  "deporteId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "clubId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "nombre",
+                  "ubicacion",
+                  "tipoSuperficie",
+                  "precioPorHora"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cancha creada"
+          },
+          "400": {
+            "description": "Datos inválidos"
+          },
+          "401": {
+            "description": "No autorizado"
+          }
+        }
+      }
+    },
+    "/canchas/{id}": {
+      "get": {
+        "summary": "Obtener cancha por ID",
+        "tags": [
+          "Canchas"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancha encontrada"
+          },
+          "404": {
+            "description": "No encontrada"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Actualizar cancha",
+        "tags": [
+          "Canchas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "ubicacion": {
+                    "type": "string"
+                  },
+                  "tipoSuperficie": {
+                    "type": "string"
+                  },
+                  "precioPorHora": {
+                    "type": "number"
+                  },
+                  "deporteId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "clubId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "activa": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cancha actualizada"
+          },
+          "400": {
+            "description": "Datos inválidos"
+          },
+          "401": {
+            "description": "No autorizado"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar cancha",
+        "tags": [
+          "Canchas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancha eliminada"
+          }
+        }
+      }
+    },
+    "/clubes": {
+      "get": {
+        "summary": "Listar clubes",
+        "tags": [
+          "Clubes"
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de clubes"
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear un club",
+        "tags": [
+          "Clubes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "direccion": {
+                    "type": "string"
+                  },
+                  "telefono": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "nombre",
+                  "direccion",
+                  "telefono",
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Club creado"
+          }
+        }
+      }
+    },
+    "/clubes/{id}": {
+      "get": {
+        "summary": "Obtener un club por ID",
+        "tags": [
+          "Clubes"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Club encontrado"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Actualizar un club",
+        "tags": [
+          "Clubes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "direccion": {
+                    "type": "string"
+                  },
+                  "telefono": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Club actualizado"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar un club",
+        "tags": [
+          "Clubes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Club eliminado"
+          }
+        }
+      }
+    },
+    "/deportes": {
+      "get": {
+        "summary": "Listar deportes",
+        "tags": [
+          "Deportes"
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de deportes"
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear un deporte",
+        "tags": [
+          "Deportes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "nombre"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Deporte creado"
+          }
+        }
+      }
+    },
+    "/deportes/{id}": {
+      "get": {
+        "summary": "Obtener un deporte por ID",
+        "tags": [
+          "Deportes"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deporte encontrado"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Actualizar un deporte",
+        "tags": [
+          "Deportes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deporte actualizado"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar un deporte",
+        "tags": [
+          "Deportes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deporte eliminado"
+          }
+        }
+      }
+    },
+    "/deudas": {
+      "get": {
+        "summary": "Listar deudas",
+        "tags": [
+          "Deudas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de deudas"
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear una deuda",
+        "tags": [
+          "Deudas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "usuarioId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "monto": {
+                    "type": "number"
+                  },
+                  "fechaVencimiento": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                },
+                "required": [
+                  "usuarioId",
+                  "monto"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Deuda creada"
+          }
+        }
+      }
+    },
+    "/deudas/{id}": {
+      "get": {
+        "summary": "Obtener una deuda por ID",
+        "tags": [
+          "Deudas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deuda encontrada"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Actualizar una deuda",
+        "tags": [
+          "Deudas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "monto": {
+                    "type": "number"
+                  },
+                  "pagada": {
+                    "type": "boolean"
+                  },
+                  "fechaVencimiento": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deuda actualizada"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar una deuda",
+        "tags": [
+          "Deudas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deuda eliminada"
+          }
+        }
+      }
+    },
+    "/horarios": {
+      "get": {
+        "summary": "Listar horarios",
+        "tags": [
+          "Horarios"
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de horarios"
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear un horario",
+        "tags": [
+          "Horarios"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "canchaId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "dia": {
+                    "type": "string"
+                  },
+                  "horaInicio": {
+                    "type": "string"
+                  },
+                  "horaFin": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "canchaId",
+                  "dia",
+                  "horaInicio",
+                  "horaFin"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Horario creado"
+          }
+        }
+      }
+    },
+    "/horarios/{id}": {
+      "get": {
+        "summary": "Obtener un horario por ID",
+        "tags": [
+          "Horarios"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Horario encontrado"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Actualizar un horario",
+        "tags": [
+          "Horarios"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dia": {
+                    "type": "string"
+                  },
+                  "horaInicio": {
+                    "type": "string"
+                  },
+                  "horaFin": {
+                    "type": "string"
+                  },
+                  "disponible": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Horario actualizado"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar un horario",
+        "tags": [
+          "Horarios"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Horario eliminado"
+          }
+        }
+      }
+    },
+    "/api/reportes/reservas": {
+      "get": {
+        "tags": [
+          "Reportes"
+        ],
+        "summary": "Obtener reservas por rango de fechas",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "desde",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": true,
+            "description": "Fecha de inicio (YYYY-MM-DD)"
+          },
+          {
+            "in": "query",
+            "name": "hasta",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": true,
+            "description": "Fecha de fin (YYYY-MM-DD)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Listado de reservas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Reserva"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reportes/ingresos": {
+      "get": {
+        "tags": [
+          "Reportes"
+        ],
+        "summary": "Obtener ingresos totales por club",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "desde",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "hasta",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ingresos por club",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "club": {
+                        "type": "string"
+                      },
+                      "ingresos": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reportes/canchas-top": {
+      "get": {
+        "tags": [
+          "Reportes"
+        ],
+        "summary": "Obtener canchas más reservadas",
+        "responses": {
+          "200": {
+            "description": "Top canchas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "cancha": {
+                        "type": "string"
+                      },
+                      "cantidad": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reportes/usuarios-top": {
+      "get": {
+        "tags": [
+          "Reportes"
+        ],
+        "summary": "Obtener usuarios con más reservas",
+        "responses": {
+          "200": {
+            "description": "Top usuarios",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "usuario": {
+                        "type": "string"
+                      },
+                      "cantidad": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reportes/ocupacion-horarios": {
+      "get": {
+        "tags": [
+          "Reportes"
+        ],
+        "summary": "Obtener ocupación por horario",
+        "responses": {
+          "200": {
+            "description": "Ocupación por hora",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "hora": {
+                        "type": "string"
+                      },
+                      "cantidad": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/reservas": {
+      "get": {
+        "summary": "Listar reservas",
+        "tags": [
+          "Reservas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de reservas"
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear una reserva",
+        "tags": [
+          "Reservas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "usuarioId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "canchaId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "fecha": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "hora": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "usuarioId",
+                  "canchaId",
+                  "fecha",
+                  "hora"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reserva creada"
+          }
+        }
+      }
+    },
+    "/reservas/{id}": {
+      "get": {
+        "summary": "Obtener una reserva por ID",
+        "tags": [
+          "Reservas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reserva encontrada"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Cancelar una reserva",
+        "tags": [
+          "Reservas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reserva cancelada"
+          }
+        }
+      }
+    },
+    "/reservas/{id}/confirmar": {
+      "patch": {
+        "summary": "Confirmar una reserva",
+        "tags": [
+          "Reservas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reserva confirmada"
+          }
+        }
+      }
+    },
+    "/usuarios/registro": {
+      "post": {
+        "summary": "Registrar un nuevo usuario",
+        "tags": [
+          "Usuarios"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "nombre",
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuario creado correctamente"
+          },
+          "400": {
+            "description": "Datos inválidos"
+          }
+        }
+      }
+    },
+    "/usuarios": {
+      "get": {
+        "summary": "Listar todos los usuarios",
+        "tags": [
+          "Usuarios"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de usuarios"
+          },
+          "401": {
+            "description": "No autorizado"
+          }
+        }
+      }
+    },
+    "/usuarios/{id}": {
+      "patch": {
+        "summary": "Actualizar datos de un usuario",
+        "tags": [
+          "Usuarios"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario actualizado"
+          },
+          "400": {
+            "description": "Datos inválidos"
+          },
+          "401": {
+            "description": "No autorizado"
+          }
+        }
+      }
+    },
+    "/valoraciones": {
+      "get": {
+        "summary": "Listar valoraciones",
+        "tags": [
+          "Valoraciones"
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de valoraciones"
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear una valoración",
+        "tags": [
+          "Valoraciones"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "usuarioId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "canchaId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "puntaje": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "comentario": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "usuarioId",
+                  "canchaId",
+                  "puntaje",
+                  "comentario"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Valoración creada"
+          }
+        }
+      }
+    },
+    "/valoraciones/{id}": {
+      "get": {
+        "summary": "Obtener una valoración por ID",
+        "tags": [
+          "Valoraciones"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Valoración encontrada"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar una valoración",
+        "tags": [
+          "Valoraciones"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Valoración eliminada"
+          }
+        }
+      }
+    }
+  }
+}

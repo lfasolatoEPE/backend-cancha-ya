@@ -6,17 +6,14 @@ export class Deuda {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column()
+  @Column('decimal', { precision: 10, scale: 2 })
   monto!: number;
-
-  @Column()
-  descripcion!: string;
 
   @Column({ default: false })
   pagada!: boolean;
 
-  @Column()
-  fecha!: string;
+  @Column({ type: 'date', nullable: true })
+  fechaVencimiento!: string;
 
   @ManyToOne(() => Usuario, usuario => usuario.deudas)
   usuario!: Usuario;

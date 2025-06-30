@@ -24,7 +24,7 @@ export const loginUsuario = async (email: string, password: string) => {
       rol: usuario.rol
     },
     process.env.JWT_SECRET || 'mi_secreto_super_seguro',
-    { expiresIn: '8h' }
+    { expiresIn: '2h' }
   );
 
   return { token };

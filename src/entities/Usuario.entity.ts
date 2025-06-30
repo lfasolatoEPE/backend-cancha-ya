@@ -5,7 +5,7 @@ import {
   OneToMany
 } from 'typeorm';
 import { Reserva } from './Reserva.entity';
-import { Comentario } from './Comentario.entity';
+import { Valoracion } from './Valoracion.entity';
 import { Deuda } from './Deuda.entity';
 
 @Entity()
@@ -31,8 +31,8 @@ export class Usuario {
   @OneToMany(() => Reserva, reserva => reserva.usuario)
   reservas!: Reserva[];
 
-  @OneToMany(() => Comentario, comentario => comentario.usuario)
-  comentarios!: Comentario[];
+  @OneToMany(() => Valoracion, valoracion => valoracion.usuario)
+  valoraciones!: Valoracion[];
 
   @OneToMany(() => Deuda, deuda => deuda.usuario)
   deudas!: Deuda[];
