@@ -1,15 +1,17 @@
 import { Router } from "express";
 import * as controller from "../controllers/reportes.controller";
+import { authMiddleware } from "../middlewares/auth.middleware";
+import { authorizeRoles } from "../middlewares/role.middleware";
 
 const router = Router();
 
 /**
- * Todos los endpoints GET
+ * Todos los endpoints GET, protegidos por autenticación y rol admin
  */
-router.get("/reservas", controller.reservasPorFechas);
-router.get("/ingresos", controller.ingresosPorClub);
-router.get("/canchas-top", controller.canchasMasReservadas);
-router.get("/usuarios-top", controller.usuariosMasActivos);
-router.get("/ocupacion-horarios", controller.ocupacionPorHorario);
+router.get("/reservas", authMiddleware, authorizeRoles("admin"), controller.reservasPorFechas);
+router.get("/ingresos", authMiddleware, authorizeRoles("admin"), controller.ingresosPorClub);
+router.get("/canchas-top", authMiddleware, authorizeRoles("admin"), controller.canchasMasReservadas);
+router.get("/usuarios-top", authMiddleware, authorizeRoles("admin"), controller.usuariosMasActivos);
+router.get("/ocupacion-horarios", authMiddleware, authorizeRoles("admin"), controller.ocupacionPorHorario);
 
 export default router;
