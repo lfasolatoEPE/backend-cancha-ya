@@ -3,17 +3,26 @@
   "info": {
     "title": "API CanchaYa",
     "version": "1.0.0",
-    "description": "Documentación de la API para gestión de reservas y usuarios"
+    "description": "Documentación de la API para gestión de usuarios y reservas"
   },
   "servers": [
     {
       "url": "http://localhost:3000/api"
     }
   ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
   "paths": {
     "/usuarios/registro": {
       "post": {
-        "summary": "Registrar usuario",
+        "summary": "Registrar un nuevo usuario",
         "requestBody": {
           "required": true,
           "content": {
@@ -32,18 +41,14 @@
           }
         },
         "responses": {
-          "201": {
-            "description": "Usuario creado"
-          },
-          "400": {
-            "description": "Error en la petición"
-          }
+          "201": { "description": "Usuario creado correctamente" },
+          "400": { "description": "Datos inválidos" }
         }
       }
     },
     "/auth/login": {
       "post": {
-        "summary": "Login de usuario",
+        "summary": "Iniciar sesión",
         "requestBody": {
           "required": true,
           "content": {
@@ -60,12 +65,144 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "Token generado"
-          },
-          "401": {
-            "description": "Credenciales inválidas"
+          "200": { "description": "Token generado" },
+          "401": { "description": "Credenciales inválidas" }
+        }
+      }
+    },
+    "/usuarios": {
+      "get": {
+        "summary": "Listar todos los usuarios",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Lista de usuarios" },
+          "401": { "description": "No autorizado" }
+        }
+      }
+    },
+    "/usuarios/{id}": {
+      "patch": {
+        "summary": "Actualizar datos de un usuario",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
           }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": { "type": "string" },
+                  "email": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Usuario actualizado" },
+          "400": { "description": "Datos inválidos" },
+          "401": { "description": "No autorizado" },
+          "403": { "description": "Sin permisos" }
+        }
+      }
+    },
+    "/reservas": {
+      "get": {
+        "summary": "Listar reservas",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Lista de reservas" },
+          "401": { "description": "No autorizado" }
+        }
+      },
+      "post": {
+        "summary": "Crear una reserva",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "usuarioId": { "type": "string", "format": "uuid" },
+                  "canchaId": { "type": "string", "format": "uuid" },
+                  "fecha": { "type": "string", "format": "date" },
+                  "hora": { "type": "string" }
+                },
+                "required": ["usuarioId", "canchaId", "fecha", "hora"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Reserva creada" },
+          "400": { "description": "Datos inválidos" },
+          "401": { "description": "No autorizado" }
+        }
+      }
+    },
+    "/reservas/{id}": {
+      "get": {
+        "summary": "Obtener una reserva por ID",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Reserva encontrada" },
+          "404": { "description": "No encontrada" },
+          "401": { "description": "No autorizado" }
+        }
+      },
+      "delete": {
+        "summary": "Cancelar una reserva",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Reserva cancelada" },
+          "404": { "description": "No encontrada" },
+          "401": { "description": "No autorizado" },
+          "403": { "description": "Sin permisos (solo admin)" }
+        }
+      }
+    },
+    "/reservas/{id}/confirmar": {
+      "patch": {
+        "summary": "Confirmar una reserva",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Reserva confirmada" },
+          "404": { "description": "No encontrada" },
+          "401": { "description": "No autorizado" }
         }
       }
     }
