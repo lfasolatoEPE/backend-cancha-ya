@@ -8,6 +8,7 @@ import { Deuda } from '../entities/Deuda.entity';
 import { Deporte } from '../entities/Deporte.entity';
 import { Horario } from '../entities/Horario.entity';
 import { Valoracion } from '../entities/Valoracion.entity';
+import { DisponibilidadJugador } from '../entities/DisponibilidadJugador';
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -29,7 +30,8 @@ export const AppDataSource = new DataSource({
     Deuda,
     Deporte,
     Horario,
-    Valoracion
+    Valoracion,
+    DisponibilidadJugador
   ],
   migrations: [],
   subscribers: [],

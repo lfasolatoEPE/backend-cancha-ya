@@ -7,6 +7,7 @@ import {
 import { Reserva } from './Reserva.entity';
 import { Valoracion } from './Valoracion.entity';
 import { Deuda } from './Deuda.entity';
+import { DisponibilidadJugador } from './DisponibilidadJugador';
 
 @Entity()
 export class Usuario {
@@ -36,4 +37,7 @@ export class Usuario {
 
   @OneToMany(() => Deuda, deuda => deuda.usuario)
   deudas!: Deuda[];
+  
+  @OneToMany(() => DisponibilidadJugador, disponibilidad => disponibilidad.usuario)
+  disponibilidades!: DisponibilidadJugador[];
 }

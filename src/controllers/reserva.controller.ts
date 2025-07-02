@@ -4,7 +4,8 @@ import {
   confirmarReserva,
   cancelarReserva,
   obtenerTodas,
-  obtenerPorId
+  obtenerPorId,
+  buscarJugadoresDisponibles
 } from '../services/reserva.service';
 
 export const crearReservaHandler = async (req: Request, res: Response) => {
@@ -51,5 +52,14 @@ export const obtenerPorIdHandler = async (req: Request, res: Response) => {
     res.json(reserva);
   } catch (error: any) {
     res.status(404).json({ error: error.message });
+  }
+};
+
+export const buscarJugadoresDisponiblesHandler = async (req: Request, res: Response) => {
+  try {
+    const resultado = await buscarJugadoresDisponibles(req.params.id);
+    res.json(resultado);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
   }
 };

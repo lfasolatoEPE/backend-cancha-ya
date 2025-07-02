@@ -13,6 +13,7 @@ import horarioRoutes from './routes/horario.routes';
 import valoracionRoutes from './routes/valoracion.routes';
 import clubRoutes from './routes/club.routes';
 import reportesRoutes from "./routes/reportes.routes";
+import disponibilidadJugadorRoutes from "./routes/disponibilidadJugador.routes";
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/horarios', horarioRoutes);
 app.use('/api/deudas', deudaRoutes);
 app.use('/api/valoraciones', valoracionRoutes);
 app.use('/api/clubes', clubRoutes);
+app.use("/api/disponibilidades", disponibilidadJugadorRoutes);
 app.use('/api/auth', authRoutes);
 app.use("/api/reportes", reportesRoutes);
 // Swagger

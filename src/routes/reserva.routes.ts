@@ -4,7 +4,8 @@ import {
   confirmarReservaHandler,
   cancelarReservaHandler,
   obtenerTodasHandler,
-  obtenerPorIdHandler
+  obtenerPorIdHandler,
+  buscarJugadoresDisponiblesHandler
 } from '../controllers/reserva.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { authorizeRoles } from '../middlewares/role.middleware';
@@ -18,5 +19,6 @@ router.patch('/:id/confirmar', authMiddleware, confirmarReservaHandler);
 router.delete('/:id', authMiddleware, authorizeRoles('admin'), cancelarReservaHandler);
 router.get('/', authMiddleware, obtenerTodasHandler);
 router.get('/:id', authMiddleware, obtenerPorIdHandler);
+router.get('/:id/buscar-jugadores', authMiddleware, buscarJugadoresDisponiblesHandler);
 
 export default router;

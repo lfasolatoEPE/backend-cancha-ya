@@ -2,6 +2,7 @@ import { AppDataSource } from '../database/data-source';
 import { Reserva } from '../entities/Reserva.entity';
 import { Usuario } from '../entities/Usuario.entity';
 import { Cancha } from '../entities/Cancha.entity';
+import { DisponibilidadJugador } from '../entities/DisponibilidadJugador';
 
 interface CrearReservaDto {
   usuarioId: string;
@@ -72,4 +73,48 @@ export const obtenerPorId = async (id: string) => {
   const reserva = await reservaRepo.findOne({ where: { id }, relations: ['usuario', 'cancha'] });
   if (!reserva) throw new Error('Reserva no encontrada');
   return reserva;
+};
+
+export const buscarJugadoresDisponibles = async (reservaId: string) => {
+  const reserva = await reservaRepo.findOne({
+    where: { id: reservaId },
+    relations: {
+      cancha: {
+        club: true,
+        deporte: true
+      }
+    }
+  });
+
+  if (!reserva) throw new Error('Reserva no encontrada');
+
+  const fechaReserva = reserva.fecha;
+  const horaReserva = reserva.hora;
+  const clubId = reserva.cancha.club.id;
+  const deporteId = reserva.cancha.deporte.id;
+
+  const dispoRepo = AppDataSource.getRepository(DisponibilidadJugador);
+
+  const disponibilidades = await dispoRepo
+    .createQueryBuilder('disp')
+    .leftJoinAndSelect('disp.usuario', 'usuario')
+    .leftJoinAndSelect('disp.clubes', 'club')
+    .leftJoinAndSelect('disp.deporte', 'deporte')
+    .where(':fecha BETWEEN disp.fechaDesde AND disp.fechaHasta', { fecha: fechaReserva })
+    .andWhere(':hora >= disp.horaDesde AND :hora <= disp.horaHasta', { hora: horaReserva })
+    .andWhere('deporte.id = :deporteId', { deporteId })
+    .andWhere('club.id = :clubId', { clubId })
+    .getMany();
+
+  return disponibilidades.map(d => ({
+    jugadorId: d.usuario.id,
+    nombre: d.usuario.nombre,
+    email: d.usuario.email,
+    deporte: d.deporte.nombre,
+    clubes: d.clubes.map(c => c.nombre),
+    fechaDesde: d.fechaDesde,
+    fechaHasta: d.fechaHasta,
+    horaDesde: d.horaDesde,
+    horaHasta: d.horaHasta
+  }));
 };
