@@ -17,6 +17,7 @@ import disponibilidadJugadorRoutes from "./routes/disponibilidadJugador.routes";
 import competitivoRoutes from './routes/competitivo.routes';
 import desafioRoutes from './routes/desafio.routes';
 import competicionRoutes from './routes/competicion.route';
+import equipoRoutes from "./routes/equipo.routes";
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use("/api/disponibilidades", disponibilidadJugadorRoutes);
 app.use('/api/competitivo', competitivoRoutes);
 app.use('/api/desafios', desafioRoutes);
 app.use('/api/competicion', competicionRoutes);
+app.use("/api/equipos", equipoRoutes);
 app.use('/api/auth', authRoutes);
 app.use("/api/reportes", reportesRoutes);
 // Swagger

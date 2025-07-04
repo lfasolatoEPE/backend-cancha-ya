@@ -63,11 +63,9 @@ export const finalizarDesafio = async (
   if (!desafio.equipoRival)
     throw new Error('El desafío no tiene rival asignado');
 
-  // Marcar como finalizado
   desafio.resultado = resultado;
   desafio.estado = 'finalizado';
 
-  // Determinar ganador (supongamos que resultado es "3-1")
   const [golesRetador, golesRival] = resultado
     .split('-')
     .map((n) => parseInt(n.trim(), 10));
@@ -83,27 +81,17 @@ export const finalizarDesafio = async (
   else if (golesRival > golesRetador) ganador = 'rival';
   else ganador = 'empate';
 
-  // Actualizar ranking según lógica
+  // Actualizar ranking usando Elo
   if (ganador !== 'empate') {
     const equipoGanador = ganador === 'retador' ? retador : rival;
     const equipoPerdedor = ganador === 'retador' ? rival : retador;
 
-    const diferencia = equipoGanador.ranking - equipoPerdedor.ranking;
-
-    if (diferencia >= 100) {
-      equipoGanador.ranking += 15;
-      equipoPerdedor.ranking -= 5;
-    } else {
-      equipoGanador.ranking += 25;
-      equipoPerdedor.ranking -= 15;
-    }
-
-    await equipoRepo.save(equipoGanador);
-    await equipoRepo.save(equipoPerdedor);
+    await actualizarRankingElo(equipoGanador, equipoPerdedor);
   }
 
   return await desafioRepo.save(desafio);
 };
+
 
 
 export const listarDesafios = async (filtros: {
@@ -150,4 +138,34 @@ export const listarDesafios = async (filtros: {
   }
 
   return await query.getMany();
+};
+
+const actualizarRankingElo = async (
+  ganador: Equipo,
+  perdedor: Equipo
+) => {
+  const kFactor = 32;
+
+  const expectedGanador =
+    1 /
+    (1 +
+      Math.pow(
+        10,
+        (perdedor.ranking - ganador.ranking) / 400
+      ));
+  const expectedPerdedor = 1 - expectedGanador;
+
+  ganador.ranking = Math.round(
+    ganador.ranking + kFactor * (1 - expectedGanador)
+  );
+
+  perdedor.ranking = Math.round(
+    perdedor.ranking + kFactor * (0 - expectedPerdedor)
+  );
+
+  if (ganador.ranking < 0) ganador.ranking = 0;
+  if (perdedor.ranking < 0) perdedor.ranking = 0;
+
+  await equipoRepo.save(ganador);
+  await equipoRepo.save(perdedor);
 };
