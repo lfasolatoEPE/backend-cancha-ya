@@ -14,6 +14,9 @@ import valoracionRoutes from './routes/valoracion.routes';
 import clubRoutes from './routes/club.routes';
 import reportesRoutes from "./routes/reportes.routes";
 import disponibilidadJugadorRoutes from "./routes/disponibilidadJugador.routes";
+import competitivoRoutes from './routes/competitivo.routes';
+import desafioRoutes from './routes/desafio.routes';
+import competicionRoutes from './routes/competicion.route';
 
 const app = express();
 
@@ -28,6 +31,9 @@ app.use('/api/deudas', deudaRoutes);
 app.use('/api/valoraciones', valoracionRoutes);
 app.use('/api/clubes', clubRoutes);
 app.use("/api/disponibilidades", disponibilidadJugadorRoutes);
+app.use('/api/competitivo', competitivoRoutes);
+app.use('/api/desafios', desafioRoutes);
+app.use('/api/competicion', competicionRoutes);
 app.use('/api/auth', authRoutes);
 app.use("/api/reportes", reportesRoutes);
 // Swagger

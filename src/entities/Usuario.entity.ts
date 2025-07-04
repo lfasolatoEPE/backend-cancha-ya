@@ -40,4 +40,11 @@ export class Usuario {
   
   @OneToMany(() => DisponibilidadJugador, disponibilidad => disponibilidad.usuario)
   disponibilidades!: DisponibilidadJugador[];
+
+  @Column({ default: false })
+  modoCompetitivo!: boolean;
+
+  @Column({ default: 1000 })
+  ranking!: number;
+
 }
