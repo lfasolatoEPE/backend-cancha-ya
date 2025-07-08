@@ -2,8 +2,8 @@
   "openapi": "3.0.0",
   "info": {
     "title": "API CanchaYa",
-    "version": "1.0.0",
-    "description": "Documentación de la API para gestión de usuarios, canchas, clubes, reservas y más."
+    "version": "1.1.0",
+    "description": "Documentación de la API para gestión de usuarios, reservas, equipos, desafíos y más."
   },
   "servers": [
     {
@@ -20,42 +20,19 @@
     }
   },
   "tags": [
-  {
-    "name": "Usuarios",
-    "description": "Operaciones relacionadas con los usuarios"
-  },
-  {
-    "name": "Auth",
-    "description": "Login y autenticación"
-  },
-  {
-    "name": "Reservas",
-    "description": "Gestión de reservas de canchas"
-  },
-  {
-    "name": "Canchas",
-    "description": "Administración de canchas"
-  },
-  {
-    "name": "Clubes",
-    "description": "Administración de clubes"
-  },
-  {
-    "name": "Deportes",
-    "description": "Gestión de deportes"
-  },
-  {
-    "name": "Deudas",
-    "description": "Administración de deudas"
-  },
-  {
-    "name": "Horarios",
-    "description": "Disponibilidad de horarios"
-  },
-  {
-    "name": "Valoraciones",
-    "description": "Opiniones y calificaciones"
-  }
-],
+    { "name": "Auth", "description": "Login y autenticación" },
+    { "name": "Usuarios", "description": "Gestión de usuarios" },
+    { "name": "Reservas", "description": "Gestión de reservas de canchas" },
+    { "name": "Canchas", "description": "Administración de canchas" },
+    { "name": "Clubes", "description": "Administración de clubes" },
+    { "name": "Deportes", "description": "Gestión de deportes" },
+    { "name": "Deudas", "description": "Administración de deudas" },
+    { "name": "Horarios", "description": "Disponibilidad de horarios" },
+    { "name": "Valoraciones", "description": "Opiniones y calificaciones" },
+    { "name": "Reportes", "description": "Estadísticas y reportes operativos" },
+    { "name": "Equipos", "description": "Gestión de equipos deportivos" },
+    { "name": "Desafíos", "description": "Desafíos competitivos entre equipos" },
+    { "name": "Ranking", "description": "Ranking de jugadores" }
+  ],
   "paths": {}
 }

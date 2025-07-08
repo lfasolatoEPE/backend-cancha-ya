@@ -2,8 +2,8 @@
   "openapi": "3.0.0",
   "info": {
     "title": "API CanchaYa",
-    "version": "1.0.0",
-    "description": "Documentación de la API para gestión de usuarios, canchas, clubes, reservas y más."
+    "version": "1.1.0",
+    "description": "Documentación de la API para gestión de usuarios, reservas, equipos, desafíos y más."
   },
   "servers": [
     {
@@ -21,12 +21,12 @@
   },
   "tags": [
     {
-      "name": "Usuarios",
-      "description": "Operaciones relacionadas con los usuarios"
-    },
-    {
       "name": "Auth",
       "description": "Login y autenticación"
+    },
+    {
+      "name": "Usuarios",
+      "description": "Gestión de usuarios"
     },
     {
       "name": "Reservas",
@@ -55,6 +55,22 @@
     {
       "name": "Valoraciones",
       "description": "Opiniones y calificaciones"
+    },
+    {
+      "name": "Reportes",
+      "description": "Estadísticas y reportes operativos"
+    },
+    {
+      "name": "Equipos",
+      "description": "Gestión de equipos deportivos"
+    },
+    {
+      "name": "Desafíos",
+      "description": "Desafíos competitivos entre equipos"
+    },
+    {
+      "name": "Ranking",
+      "description": "Ranking de jugadores"
     }
   ],
   "paths": {
@@ -592,6 +608,215 @@
         }
       }
     },
+    "/desafios": {
+      "get": {
+        "summary": "Listar desafíos",
+        "tags": [
+          "Desafíos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "estado",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pendiente",
+                "aceptado",
+                "finalizado"
+              ]
+            }
+          },
+          {
+            "name": "deporteId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "equipoId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "jugadorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "fecha",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de desafíos"
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear un desafío",
+        "tags": [
+          "Desafíos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "equipoRetadorId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "deporteId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "fecha": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "hora": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "equipoRetadorId",
+                  "deporteId",
+                  "fecha",
+                  "hora"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Desafío creado"
+          }
+        }
+      }
+    },
+    "/desafios/{id}/aceptar": {
+      "patch": {
+        "summary": "Aceptar un desafío",
+        "tags": [
+          "Desafíos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "equipoRivalId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "equipoRivalId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Desafío aceptado"
+          }
+        }
+      }
+    },
+    "/desafios/{id}/finalizar": {
+      "patch": {
+        "summary": "Finalizar un desafío",
+        "tags": [
+          "Desafíos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "resultado": {
+                    "type": "string",
+                    "example": "3-2"
+                  }
+                },
+                "required": [
+                  "resultado"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Desafío finalizado y rankings actualizados"
+          }
+        }
+      }
+    },
     "/deudas": {
       "get": {
         "summary": "Listar deudas",
@@ -758,6 +983,285 @@
         }
       }
     },
+    "/disponibilidades": {
+      "get": {
+        "summary": "Listar disponibilidades de jugadores",
+        "tags": [
+          "Disponibilidad de Jugadores"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de disponibilidades"
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear disponibilidad de jugador",
+        "tags": [
+          "Disponibilidad de Jugadores"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fechaDesde": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "fechaHasta": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "horaDesde": {
+                    "type": "string",
+                    "example": "18:00"
+                  },
+                  "horaHasta": {
+                    "type": "string",
+                    "example": "20:00"
+                  },
+                  "clubesIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                },
+                "required": [
+                  "fechaDesde",
+                  "fechaHasta",
+                  "horaDesde",
+                  "horaHasta",
+                  "clubesIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Disponibilidad creada"
+          }
+        }
+      }
+    },
+    "/disponibilidades/{id}": {
+      "delete": {
+        "summary": "Eliminar disponibilidad de jugador",
+        "tags": [
+          "Disponibilidad de Jugadores"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disponibilidad eliminada"
+          }
+        }
+      }
+    },
+    "/equipos": {
+      "get": {
+        "summary": "Listar todos los equipos",
+        "tags": [
+          "Equipos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de equipos"
+          }
+        }
+      },
+      "post": {
+        "summary": "Crear un equipo",
+        "tags": [
+          "Equipos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "deporteId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "jugadoresIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                },
+                "required": [
+                  "nombre",
+                  "deporteId",
+                  "jugadoresIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Equipo creado"
+          }
+        }
+      }
+    },
+    "/equipos/{id}": {
+      "get": {
+        "summary": "Obtener un equipo por ID",
+        "tags": [
+          "Equipos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Equipo encontrado"
+          }
+        }
+      },
+      "put": {
+        "summary": "Actualizar un equipo",
+        "tags": [
+          "Equipos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "jugadoresIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                },
+                "required": [
+                  "nombre",
+                  "jugadoresIds"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Equipo actualizado"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Eliminar un equipo",
+        "tags": [
+          "Equipos"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Equipo eliminado"
+          }
+        }
+      }
+    },
     "/horarios": {
       "get": {
         "summary": "Listar horarios",
@@ -916,6 +1420,62 @@
         "responses": {
           "200": {
             "description": "Horario eliminado"
+          }
+        }
+      }
+    },
+    "/competicion/jugadores-ranking": {
+      "get": {
+        "summary": "Ranking de jugadores",
+        "tags": [
+          "Ranking"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "deporteId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de jugadores ordenados por ranking"
+          }
+        }
+      }
+    },
+    "/competicion/equipos-ranking": {
+      "get": {
+        "summary": "Ranking de equipos",
+        "tags": [
+          "Ranking"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "deporteId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de equipos ordenados por ranking"
           }
         }
       }
