@@ -7,7 +7,7 @@ import {
 import { Reserva } from './Reserva.entity';
 import { Valoracion } from './Valoracion.entity';
 import { Deuda } from './Deuda.entity';
-import { DisponibilidadJugador } from './DisponibilidadJugador';
+import { DisponibilidadJugador } from './DisponibilidadJugador.entity';
 
 @Entity()
 export class Usuario {

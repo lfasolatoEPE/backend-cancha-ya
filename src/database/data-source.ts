@@ -6,10 +6,8 @@ import path from 'path';
 
 dotenv.config();
 
-// DEBUG: Mostrar __dirname
 console.log("🧭 __dirname =", __dirname);
 
-// DEBUG: Listar archivos en /entities
 const entitiesDir = path.join(__dirname, '../entities');
 console.log("🗂️ Buscando archivos en:", entitiesDir);
 

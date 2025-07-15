@@ -2,7 +2,7 @@ import { AppDataSource } from '../database/data-source';
 import { Reserva } from '../entities/Reserva.entity';
 import { Usuario } from '../entities/Usuario.entity';
 import { Cancha } from '../entities/Cancha.entity';
-import { DisponibilidadJugador } from '../entities/DisponibilidadJugador';
+import { DisponibilidadJugador } from '../entities/DisponibilidadJugador.entity';
 
 interface CrearReservaDto {
   usuarioId: string;
