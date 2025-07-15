@@ -10,7 +10,7 @@ dotenv.config();
 console.log("🧭 __dirname =", __dirname);
 
 // DEBUG: Listar archivos en /entities
-const entitiesDir = path.join(__dirname, 'entities');
+const entitiesDir = path.join(__dirname, '../entities');
 console.log("🗂️ Buscando archivos en:", entitiesDir);
 
 try {
@@ -26,7 +26,7 @@ export const AppDataSource = new DataSource({
   url: process.env.DATABASE_URL,
   synchronize: true,
   logging: true,
-  entities: [__dirname + '/entities/*.entity.{js,ts}'],
+  entities: [__dirname + '/../entities/*.entity.{js,ts}'],
   migrations: [],
   subscribers: [],
 });
