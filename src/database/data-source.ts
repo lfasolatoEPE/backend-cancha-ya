@@ -7,8 +7,8 @@ export const AppDataSource = new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
   synchronize: true,
-  logging: true, // activá logging para ver los CREATE TABLE
-  entities: [__dirname + '/../**/*.entity.{js,ts}'],
+  logging: true, // activado para ver los CREATE TABLE
+  entities: [__dirname + '/entities/*.entity.{js,ts}'],
   migrations: [],
   subscribers: [],
 });
