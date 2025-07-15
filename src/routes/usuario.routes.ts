@@ -8,6 +8,7 @@ import { authMiddleware } from '../middlewares/auth.middleware';
 const router = Router();
 
 router.post('/registro', validateDto(CrearUsuarioDto), registrarUsuario);
+router.post('/admin', validateDto(CrearUsuarioDto), registrarUsuario);
 // {
 //   "nombre": "",
 //   "email": "noesunemail",

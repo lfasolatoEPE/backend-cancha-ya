@@ -1,9 +1,18 @@
 import { Request, Response } from 'express';
-import { crearUsuario, listarUsuarios, actualizarUsuario } from '../services/usuario.service';
+import { crearUsuario, crearAdmin, listarUsuarios, actualizarUsuario } from '../services/usuario.service';
 
 export const registrarUsuario = async (req: Request, res: Response) => {
   try {
     const usuario = await crearUsuario(req.body);
+    res.status(201).json(usuario);
+  } catch (error: any) {
+    res.status(400).json({ mensaje: error.message });
+  }
+};
+
+export const registrarAdmin = async (req: Request, res: Response) => {
+  try {
+    const usuario = await crearAdmin(req.body);
     res.status(201).json(usuario);
   } catch (error: any) {
     res.status(400).json({ mensaje: error.message });

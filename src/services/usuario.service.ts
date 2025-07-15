@@ -4,7 +4,38 @@ import bcrypt from 'bcryptjs';
 
 const usuarioRepository = AppDataSource.getRepository(Usuario);
 
-export const crearUsuario = async (data: { nombre: string; email: string; password: string; rol?: 'usuario' | 'admin' }) => {
+export const crearUsuario = async (data: { nombre: string; email: string; password: string }) => {
+  //{
+  //   "nombre": "Usuario",
+  //   "email": "usuario@cancha.com",
+  //   "password": "123456",
+  //   "rol": "usuario"
+  // }
+  if (!data.nombre || !data.email || !data.password) {
+    throw new Error('Datos incompletos');
+  }
+
+  const yaExiste = await usuarioRepository.findOneBy({ email: data.email });
+  if (yaExiste) {
+    throw new Error('El email ya está registrado');
+  }
+
+  const passwordHash = await bcrypt.hash(data.password, 10);
+
+  const nuevoUsuario = usuarioRepository.create({
+    nombre: data.nombre,
+    email: data.email,
+    passwordHash,
+    rol: 'usuario',
+  });
+
+  await usuarioRepository.save(nuevoUsuario);
+
+  const { passwordHash: _, ...usuarioSinPassword } = nuevoUsuario;
+  return usuarioSinPassword;
+};
+
+export const crearAdmin = async (data: { nombre: string; email: string; password: string }) => {
   //{
   //   "nombre": "Admin",
   //   "email": "admin@cancha.com",
@@ -26,7 +57,7 @@ export const crearUsuario = async (data: { nombre: string; email: string; passwo
     nombre: data.nombre,
     email: data.email,
     passwordHash,
-    rol: data.rol || 'usuario',
+    rol: 'admin',
   });
 
   await usuarioRepository.save(nuevoUsuario);
@@ -34,7 +65,6 @@ export const crearUsuario = async (data: { nombre: string; email: string; passwo
   const { passwordHash: _, ...usuarioSinPassword } = nuevoUsuario;
   return usuarioSinPassword;
 };
-
 
 export const listarUsuarios = async () => {
   const usuarios = await usuarioRepository.find({
