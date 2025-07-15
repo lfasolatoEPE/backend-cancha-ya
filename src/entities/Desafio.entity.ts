@@ -33,8 +33,8 @@ export class Desafio {
   @Column({ default: 'pendiente' })
   estado!: EstadoDesafio;
 
-  @Column({ nullable: true })
-  resultado!: string | null; // ej: "3-2"
+  @Column({ type: 'varchar', nullable: true })
+  resultado!: string | null;
 
   @CreateDateColumn()
   creadoEl!: Date;
