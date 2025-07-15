@@ -6,9 +6,9 @@
     "description": "Documentación de la API para gestión de usuarios, reservas, equipos, desafíos y más."
   },
   "servers": [
-    {
-      "url": "http://localhost:3000/api"
-    }
+  {
+    "url": "https://backend-cancha-ya-production.up.railway.app/api"
+  }
   ],
   "components": {
     "securitySchemes": {
