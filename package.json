@@ -4,11 +4,10 @@
   "description": "Backend para el sistema CanchaYa",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node src/server.ts",
     "generate-swagger": "ts-node scripts/generateSwagger.ts",
-    "build": "tsc",
+    "build": "npm run generate-swagger && tsc",
     "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "ts-node-dev src/index.ts"
   },
   "keywords": [],
   "author": "Lucas Fasolato",
