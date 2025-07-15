@@ -1,17 +1,25 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import dotenv from 'dotenv';
-// @ts-ignore
-import glob from 'glob';
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
-// DEBUG: Mostramos qué ruta ve __dirname
+// DEBUG: Mostrar __dirname
 console.log("🧭 __dirname =", __dirname);
 
-// DEBUG: Mostramos qué archivos detecta este patrón
-const entityPaths = glob.sync(__dirname + '/entities/*.entity.{js,ts}');
-console.log("🔍 Entidades detectadas por el patrón:", entityPaths);
+// DEBUG: Listar archivos en /entities
+const entitiesDir = path.join(__dirname, 'entities');
+console.log("🗂️ Buscando archivos en:", entitiesDir);
+
+try {
+  const files = fs.readdirSync(entitiesDir);
+  const entityFiles = files.filter(f => f.endsWith('.entity.js') || f.endsWith('.entity.ts'));
+  console.log("🔍 Entidades encontradas:", entityFiles);
+} catch (error) {
+  console.error("❌ Error leyendo carpeta de entidades:", error);
+}
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
