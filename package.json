@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "generate-swagger": "ts-node scripts/generateSwagger.ts",
-    "build": "npm run generate-swagger && tsc",
-    "start": "node dist/index.js",
+    "build": "tsc",
+    "start": "npm run generate-swagger && node dist/index.js",
     "dev": "ts-node-dev src/index.ts"
   },
   "keywords": [],
