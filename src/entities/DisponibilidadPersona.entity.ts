@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, JoinTable } from "typeorm";
-import { Usuario } from "./Usuario.entity";
 import { Club } from "./Club.entity";
 import { Deporte } from "./Deporte.entity";
+import { Persona } from "./Persona.entity";
 
 @Entity()
 export class DisponibilidadJugador {
@@ -20,8 +20,8 @@ export class DisponibilidadJugador {
   @Column()
   horaHasta!: string;
 
-  @ManyToOne(() => Usuario, (usuario) => usuario.disponibilidades, { eager: true })
-  usuario!: Usuario;
+  @ManyToOne(() => Persona)
+  persona!: Persona;
 
   @ManyToMany(() => Club, { eager: true })
   @JoinTable()

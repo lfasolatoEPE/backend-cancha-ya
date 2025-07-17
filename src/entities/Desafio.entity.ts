@@ -2,35 +2,44 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
+  JoinColumn,
   ManyToOne,
+  OneToOne,
   CreateDateColumn
 } from 'typeorm';
 import { Equipo } from './Equipo.entity';
 import { Deporte } from './Deporte.entity';
+import { Reserva } from './Reserva.entity';
 
-export type EstadoDesafio = 'pendiente' | 'aceptado' | 'finalizado';
+export enum EstadoDesafio {
+  Pendiente = 'pendiente',
+  Aceptado = 'aceptado',
+  Finalizado = 'finalizado'
+}
 
 @Entity()
 export class Desafio {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
-
-  @ManyToOne(() => Equipo, { eager: true })
+  
+  @OneToOne(() => Reserva, { eager: true })
+  @JoinColumn()
+  reserva!: Reserva;
+  
+  @ManyToOne(() => Equipo)
   equipoRetador!: Equipo;
 
-  @ManyToOne(() => Equipo, { eager: true, nullable: true })
+  @ManyToOne(() => Equipo, { nullable: true })
   equipoRival!: Equipo | null;
 
-  @ManyToOne(() => Deporte, { eager: true })
+  @ManyToOne(() => Deporte)
   deporte!: Deporte;
-
-  @Column()
-  fecha!: string; // yyyy-mm-dd
-
-  @Column()
-  hora!: string; // hh:mm
-
-  @Column({ default: 'pendiente' })
+  
+  @Column({
+    type: 'enum',
+    enum: EstadoDesafio,
+    default: EstadoDesafio.Pendiente
+  })
   estado!: EstadoDesafio;
 
   @Column({ type: 'varchar', nullable: true })

@@ -2,12 +2,15 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  OneToMany
+  ManyToOne,
+  OneToMany,
+  OneToOne,
+  JoinColumn
 } from 'typeorm';
-import { Reserva } from './Reserva.entity';
+import { Persona } from './Persona.entity';
+import { Rol } from './Rol.entity';
 import { Valoracion } from './Valoracion.entity';
-import { Deuda } from './Deuda.entity';
-import { DisponibilidadJugador } from './DisponibilidadJugador.entity';
+import { PerfilCompetitivo } from './PerfilCompetitivo.entity';
 
 @Entity()
 export class Usuario {
@@ -15,36 +18,23 @@ export class Usuario {
   id!: string;
 
   @Column()
-  nombre!: string;
-
-  @Column({ unique: true })
-  email!: string;
-
-  @Column()
   passwordHash!: string;
-
-  @Column({ default: 'usuario' })
-  rol!: 'usuario' | 'admin';
 
   @Column({ default: true })
   activo!: boolean;
 
-  @OneToMany(() => Reserva, reserva => reserva.usuario)
-  reservas!: Reserva[];
+  @ManyToOne(() => Persona)
+  @JoinColumn()
+  persona!: Persona;
+
+  @ManyToOne(() => Rol)
+  @JoinColumn()
+  rol!: Rol;
 
   @OneToMany(() => Valoracion, valoracion => valoracion.usuario)
   valoraciones!: Valoracion[];
 
-  @OneToMany(() => Deuda, deuda => deuda.usuario)
-  deudas!: Deuda[];
-  
-  @OneToMany(() => DisponibilidadJugador, disponibilidad => disponibilidad.usuario)
-  disponibilidades!: DisponibilidadJugador[];
-
-  @Column({ default: false })
-  modoCompetitivo!: boolean;
-
-  @Column({ default: 1000 })
-  ranking!: number;
+  @OneToOne(() => PerfilCompetitivo, perfil => perfil.usuario)
+  perfilCompetitivo!: PerfilCompetitivo;
 
 }

@@ -1,5 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { Cancha } from './Cancha.entity';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity()
 export class Horario {
@@ -7,17 +6,8 @@ export class Horario {
   id!: string;
 
   @Column()
-  dia!: string; // ej: Lunes, Martes
+  horaInicio!: string; // ej: "18:00"
 
   @Column()
-  horaInicio!: string;
-
-  @Column()
-  horaFin!: string;
-
-  @Column({ default: true })
-  disponible!: boolean;
-
-  @ManyToOne(() => Cancha, cancha => cancha.horarios)
-  cancha!: Cancha;
+  horaFin!: string;    // ej: "19:00"
 }

@@ -6,7 +6,7 @@ import {
   JoinTable,
   ManyToOne
 } from 'typeorm';
-import { Usuario } from './Usuario.entity';
+import { Persona } from './Persona.entity';
 import { Deporte } from './Deporte.entity';
 
 @Entity()
@@ -20,10 +20,16 @@ export class Equipo {
   @ManyToOne(() => Deporte, { eager: true })
   deporte!: Deporte;
 
-  @ManyToMany(() => Usuario, { eager: true })
+  @ManyToMany(() => Persona, { eager: true })
   @JoinTable()
-  jugadores!: Usuario[];
+  jugadores!: Persona[];
 
   @Column({ default: 1000 })
   ranking!: number;
+
+  @Column()
+  partidosJugados!: number;
+
+  @Column()
+  partidosGanados!: number;
 }

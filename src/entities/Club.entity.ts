@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Cancha } from './Cancha.entity';
+import { Valoracion } from './Valoracion.entity';
 
 @Entity()
 export class Club {

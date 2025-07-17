@@ -1,5 +1,5 @@
 import { AppDataSource } from "../database/data-source";
-import { DisponibilidadJugador } from "../entities/DisponibilidadJugador.entity";
+import { DisponibilidadJugador } from "../entities/DisponibilidadPersona.entity";
 import { Usuario } from "../entities/Usuario.entity";
 import { Club } from "../entities/Club.entity";
 import { Deporte } from "../entities/Deporte.entity";

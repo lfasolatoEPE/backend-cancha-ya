@@ -1,24 +1,26 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import { Usuario } from './Usuario.entity';
-import { Cancha } from './Cancha.entity';
 
 @Entity()
 export class Valoracion {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column('int')
-  puntaje!: number; // por ej: 1 a 5
+  @Column()
+  tipo_objetivo!: 'club' | 'cancha' | 'usuario' | 'equipo';
 
   @Column()
-  comentario!: string;
+  id_objetivo!: string;
+
+  @Column()
+  puntaje!: number; // 1-5
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   fecha!: Date;
 
-  @ManyToOne(() => Usuario, usuario => usuario.valoraciones)
-  usuario!: Usuario;
+  @Column({ nullable: true })
+  comentario?: string;
 
-  @ManyToOne(() => Cancha, cancha => cancha.valoraciones)
-  cancha!: Cancha;
+  @ManyToOne(() => Usuario, usuario => usuario.valoraciones, { eager: true })
+  usuario!: Usuario;
 }

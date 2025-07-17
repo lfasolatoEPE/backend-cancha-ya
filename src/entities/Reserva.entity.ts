@@ -1,27 +1,34 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { Usuario } from './Usuario.entity';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { Cancha } from './Cancha.entity';
+import { Horario } from './Horario.entity';
+import { Persona } from './Persona.entity';
+
+export enum EstadoReserva {
+  Pendiente = 'pendiente',
+  Confirmada = 'confirmada',
+  Cancelada = 'cancelada'
+}
 
 @Entity()
 export class Reserva {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column()
-  fecha!: string;
-
-  @Column()
-  hora!: string;
-
-  @Column({ default: false })
-  confirmada!: boolean;
+  @Column({ type: 'timestamp' })
+  fechaHora!: Date;
 
   @Column()
   creadaEl!: Date;
 
-  @ManyToOne(() => Usuario, usuario => usuario.reservas)
-  usuario!: Usuario;
+  @ManyToOne(() => Persona)
+  persona!: Persona;
 
-  @ManyToOne(() => Cancha, cancha => cancha.reservas)
+  @ManyToOne(() => Cancha, cancha => cancha.reservas, { eager: true })
   cancha!: Cancha;
+
+  @ManyToOne(() => Horario, { eager: true })
+  horario!: Horario;
+
+  @Column({ type: 'enum', enum: EstadoReserva, default: EstadoReserva.Pendiente })
+  estado!: EstadoReserva;
 }

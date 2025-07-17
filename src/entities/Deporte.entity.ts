@@ -8,7 +8,4 @@ export class Deporte {
 
   @Column()
   nombre!: string;
-
-  @OneToMany(() => Cancha, cancha => cancha.deporte)
-  canchas!: Cancha[];
 }
