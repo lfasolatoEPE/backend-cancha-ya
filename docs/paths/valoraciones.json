@@ -1,8 +1,8 @@
 {
-  "/desafios": {
+  "/valoraciones": {
     "post": {
-      "summary": "Crear desafío",
-      "tags": ["Desafíos"],
+      "summary": "Crear valoración",
+      "tags": ["Valoraciones"],
       "security": [{ "bearerAuth": [] }],
       "requestBody": {
         "required": true,
@@ -11,85 +11,52 @@
             "schema": {
               "type": "object",
               "properties": {
-                "reservaId": { "type": "string" },
-                "equipoRetadorId": { "type": "string" },
-                "deporteId": { "type": "string" }
+                "tipo_objetivo": {
+                  "type": "string",
+                  "enum": ["club", "cancha", "usuario", "equipo"]
+                },
+                "id_objetivo": { "type": "string" },
+                "puntaje": { "type": "integer", "minimum": 1, "maximum": 5 },
+                "comentario": { "type": "string" }
               },
-              "required": ["reservaId", "equipoRetadorId", "deporteId"]
+              "required": ["tipo_objetivo", "id_objetivo", "puntaje"]
             }
           }
         }
       },
       "responses": {
-        "201": { "description": "Desafío creado" }
+        "201": { "description": "Valoración creada" }
       }
     },
     "get": {
-      "summary": "Listar desafíos",
-      "tags": ["Desafíos"],
-      "security": [{ "bearerAuth": [] }],
-      "parameters": [
-        { "in": "query", "name": "estado", "schema": { "type": "string" } },
-        { "in": "query", "name": "deporteId", "schema": { "type": "string" } },
-        { "in": "query", "name": "equipoId", "schema": { "type": "string" } },
-        { "in": "query", "name": "jugadorId", "schema": { "type": "string" } }
-      ],
+      "summary": "Listar todas las valoraciones",
+      "tags": ["Valoraciones"],
       "responses": {
-        "200": { "description": "Lista de desafíos" }
+        "200": { "description": "Lista de valoraciones" }
       }
     }
   },
-  "/desafios/{id}/aceptar": {
-    "patch": {
-      "summary": "Aceptar desafío",
-      "tags": ["Desafíos"],
+  "/valoraciones/{id}": {
+    "get": {
+      "summary": "Obtener valoración por ID",
+      "tags": ["Valoraciones"],
+      "parameters": [
+        { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }
+      ],
+      "responses": {
+        "200": { "description": "Valoración encontrada" },
+        "404": { "description": "No encontrada" }
+      }
+    },
+    "delete": {
+      "summary": "Eliminar valoración",
+      "tags": ["Valoraciones"],
       "security": [{ "bearerAuth": [] }],
       "parameters": [
         { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }
       ],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "equipoRivalId": { "type": "string" }
-              },
-              "required": ["equipoRivalId"]
-            }
-          }
-        }
-      },
       "responses": {
-        "200": { "description": "Desafío aceptado" }
-      }
-    }
-  },
-  "/desafios/{id}/finalizar": {
-    "patch": {
-      "summary": "Finalizar desafío",
-      "tags": ["Desafíos"],
-      "security": [{ "bearerAuth": [] }],
-      "parameters": [
-        { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }
-      ],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "resultado": { "type": "string", "example": "3-2" }
-              },
-              "required": ["resultado"]
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": { "description": "Desafío finalizado" }
+        "200": { "description": "Valoración eliminada" }
       }
     }
   }
