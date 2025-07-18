@@ -11,11 +11,12 @@
               "type": "object",
               "properties": {
                 "nombre": { "type": "string" },
+                "apellido": { "type": "string" },
                 "email": { "type": "string" },
                 "password": { "type": "string" },
                 "rol": { "type": "string" }
               },
-              "required": ["nombre", "email", "password"]
+              "required": ["nombre", "apellido", "email", "password"]
             }
           }
         }
