@@ -1,14 +1,14 @@
 {
   "/horarios": {
     "get": {
-      "summary": "Listar horarios",
+      "summary": "Listar horarios disponibles",
       "tags": ["Horarios"],
       "responses": {
         "200": { "description": "Lista de horarios" }
       }
     },
     "post": {
-      "summary": "Crear un horario",
+      "summary": "Crear horario",
       "tags": ["Horarios"],
       "security": [{ "bearerAuth": [] }],
       "requestBody": {
@@ -18,83 +18,16 @@
             "schema": {
               "type": "object",
               "properties": {
-                "canchaId": { "type": "string", "format": "uuid" },
-                "dia": { "type": "string" },
                 "horaInicio": { "type": "string" },
                 "horaFin": { "type": "string" }
               },
-              "required": ["canchaId", "dia", "horaInicio", "horaFin"]
+              "required": ["horaInicio", "horaFin"]
             }
           }
         }
       },
       "responses": {
         "201": { "description": "Horario creado" }
-      }
-    }
-  },
-  "/horarios/{id}": {
-    "get": {
-      "summary": "Obtener un horario por ID",
-      "tags": ["Horarios"],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string", "format": "uuid" }
-        }
-      ],
-      "responses": {
-        "200": { "description": "Horario encontrado" }
-      }
-    },
-    "patch": {
-      "summary": "Actualizar un horario",
-      "tags": ["Horarios"],
-      "security": [{ "bearerAuth": [] }],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string", "format": "uuid" }
-        }
-      ],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "dia": { "type": "string" },
-                "horaInicio": { "type": "string" },
-                "horaFin": { "type": "string" },
-                "disponible": { "type": "boolean" }
-              }
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": { "description": "Horario actualizado" }
-      }
-    },
-    "delete": {
-      "summary": "Eliminar un horario",
-      "tags": ["Horarios"],
-      "security": [{ "bearerAuth": [] }],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string", "format": "uuid" }
-        }
-      ],
-      "responses": {
-        "200": { "description": "Horario eliminado" }
       }
     }
   }

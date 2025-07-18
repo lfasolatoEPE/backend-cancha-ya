@@ -1,15 +1,7 @@
 {
   "/equipos": {
-    "get": {
-      "summary": "Listar todos los equipos",
-      "tags": ["Equipos"],
-      "security": [{ "bearerAuth": [] }],
-      "responses": {
-        "200": { "description": "Lista de equipos" }
-      }
-    },
     "post": {
-      "summary": "Crear un equipo",
+      "summary": "Crear equipo",
       "tags": ["Equipos"],
       "security": [{ "bearerAuth": [] }],
       "requestBody": {
@@ -20,13 +12,13 @@
               "type": "object",
               "properties": {
                 "nombre": { "type": "string" },
-                "deporteId": { "type": "string", "format": "uuid" },
-                "jugadoresIds": {
+                "deporteId": { "type": "string" },
+                "jugadores": {
                   "type": "array",
-                  "items": { "type": "string", "format": "uuid" }
+                  "items": { "type": "string" }
                 }
               },
-              "required": ["nombre", "deporteId", "jugadoresIds"]
+              "required": ["nombre", "deporteId"]
             }
           }
         }
@@ -34,73 +26,13 @@
       "responses": {
         "201": { "description": "Equipo creado" }
       }
-    }
-  },
-  "/equipos/{id}": {
+    },
     "get": {
-      "summary": "Obtener un equipo por ID",
+      "summary": "Listar equipos",
       "tags": ["Equipos"],
       "security": [{ "bearerAuth": [] }],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string", "format": "uuid" }
-        }
-      ],
       "responses": {
-        "200": { "description": "Equipo encontrado" }
-      }
-    },
-    "put": {
-      "summary": "Actualizar un equipo",
-      "tags": ["Equipos"],
-      "security": [{ "bearerAuth": [] }],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string", "format": "uuid" }
-        }
-      ],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "nombre": { "type": "string" },
-                "jugadoresIds": {
-                  "type": "array",
-                  "items": { "type": "string", "format": "uuid" }
-                }
-              },
-              "required": ["nombre", "jugadoresIds"]
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": { "description": "Equipo actualizado" }
-      }
-    },
-    "delete": {
-      "summary": "Eliminar un equipo",
-      "tags": ["Equipos"],
-      "security": [{ "bearerAuth": [] }],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string", "format": "uuid" }
-        }
-      ],
-      "responses": {
-        "200": { "description": "Equipo eliminado" }
+        "200": { "description": "Lista de equipos" }
       }
     }
   }

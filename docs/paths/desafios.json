@@ -1,22 +1,7 @@
 {
   "/desafios": {
-    "get": {
-      "summary": "Listar desafíos",
-      "tags": ["Desafíos"],
-      "security": [{ "bearerAuth": [] }],
-      "parameters": [
-        { "name": "estado", "in": "query", "schema": { "type": "string", "enum": ["pendiente", "aceptado", "finalizado"] } },
-        { "name": "deporteId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
-        { "name": "equipoId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
-        { "name": "jugadorId", "in": "query", "schema": { "type": "string", "format": "uuid" } },
-        { "name": "fecha", "in": "query", "schema": { "type": "string", "format": "date" } }
-      ],
-      "responses": {
-        "200": { "description": "Lista de desafíos" }
-      }
-    },
     "post": {
-      "summary": "Crear un desafío",
+      "summary": "Crear desafío",
       "tags": ["Desafíos"],
       "security": [{ "bearerAuth": [] }],
       "requestBody": {
@@ -26,12 +11,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "equipoRetadorId": { "type": "string", "format": "uuid" },
-                "deporteId": { "type": "string", "format": "uuid" },
-                "fecha": { "type": "string", "format": "date" },
-                "hora": { "type": "string" }
+                "reservaId": { "type": "string" },
+                "equipoRetadorId": { "type": "string" },
+                "deporteId": { "type": "string" }
               },
-              "required": ["equipoRetadorId", "deporteId", "fecha", "hora"]
+              "required": ["reservaId", "equipoRetadorId", "deporteId"]
             }
           }
         }
@@ -39,15 +23,29 @@
       "responses": {
         "201": { "description": "Desafío creado" }
       }
+    },
+    "get": {
+      "summary": "Listar desafíos",
+      "tags": ["Desafíos"],
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        { "in": "query", "name": "estado", "schema": { "type": "string" } },
+        { "in": "query", "name": "deporteId", "schema": { "type": "string" } },
+        { "in": "query", "name": "equipoId", "schema": { "type": "string" } },
+        { "in": "query", "name": "jugadorId", "schema": { "type": "string" } }
+      ],
+      "responses": {
+        "200": { "description": "Lista de desafíos" }
+      }
     }
   },
   "/desafios/{id}/aceptar": {
     "patch": {
-      "summary": "Aceptar un desafío",
+      "summary": "Aceptar desafío",
       "tags": ["Desafíos"],
       "security": [{ "bearerAuth": [] }],
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }
       ],
       "requestBody": {
         "required": true,
@@ -56,7 +54,7 @@
             "schema": {
               "type": "object",
               "properties": {
-                "equipoRivalId": { "type": "string", "format": "uuid" }
+                "equipoRivalId": { "type": "string" }
               },
               "required": ["equipoRivalId"]
             }
@@ -70,11 +68,11 @@
   },
   "/desafios/{id}/finalizar": {
     "patch": {
-      "summary": "Finalizar un desafío",
+      "summary": "Finalizar desafío",
       "tags": ["Desafíos"],
       "security": [{ "bearerAuth": [] }],
       "parameters": [
-        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        { "in": "path", "name": "id", "required": true, "schema": { "type": "string" } }
       ],
       "requestBody": {
         "required": true,
@@ -91,7 +89,7 @@
         }
       },
       "responses": {
-        "200": { "description": "Desafío finalizado y rankings actualizados" }
+        "200": { "description": "Desafío finalizado" }
       }
     }
   }

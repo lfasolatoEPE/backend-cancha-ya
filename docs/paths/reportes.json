@@ -1,145 +1,44 @@
 {
-  "/api/reportes/reservas": {
+  "/reportes/reservas": {
     "get": {
+      "summary": "Exportar reservas como CSV",
       "tags": ["Reportes"],
-      "summary": "Obtener reservas por rango de fechas",
-      "parameters": [
-        {
-          "in": "query",
-          "name": "desde",
-          "schema": { "type": "string", "format": "date" },
-          "required": true,
-          "description": "Fecha de inicio (YYYY-MM-DD)"
-        },
-        {
-          "in": "query",
-          "name": "hasta",
-          "schema": { "type": "string", "format": "date" },
-          "required": true,
-          "description": "Fecha de fin (YYYY-MM-DD)"
-        }
-      ],
+      "security": [{ "bearerAuth": [] }],
       "responses": {
         "200": {
-          "description": "Listado de reservas",
+          "description": "Archivo CSV de reservas",
           "content": {
-            "application/json": {
-              "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Reserva" } }
-            }
+            "text/csv": {}
           }
         }
       }
     }
   },
-  "/api/reportes/ingresos": {
+  "/reportes/deudas": {
     "get": {
+      "summary": "Exportar deudas impagas como CSV",
       "tags": ["Reportes"],
-      "summary": "Obtener ingresos totales por club",
-      "parameters": [
-        {
-          "in": "query",
-          "name": "desde",
-          "schema": { "type": "string", "format": "date" },
-          "required": true
-        },
-        {
-          "in": "query",
-          "name": "hasta",
-          "schema": { "type": "string", "format": "date" },
-          "required": true
-        }
-      ],
+      "security": [{ "bearerAuth": [] }],
       "responses": {
         "200": {
-          "description": "Ingresos por club",
+          "description": "Archivo CSV de deudas",
           "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "club": { "type": "string" },
-                    "ingresos": { "type": "number" }
-                  }
-                }
-              }
-            }
+            "text/csv": {}
           }
         }
       }
     }
   },
-  "/api/reportes/canchas-top": {
+  "/reportes/ranking-jugadores": {
     "get": {
+      "summary": "Exportar ranking de jugadores como CSV",
       "tags": ["Reportes"],
-      "summary": "Obtener canchas más reservadas",
+      "security": [{ "bearerAuth": [] }],
       "responses": {
         "200": {
-          "description": "Top canchas",
+          "description": "Archivo CSV con el ranking",
           "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "cancha": { "type": "string" },
-                    "cantidad": { "type": "integer" }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-  "/api/reportes/usuarios-top": {
-    "get": {
-      "tags": ["Reportes"],
-      "summary": "Obtener usuarios con más reservas",
-      "responses": {
-        "200": {
-          "description": "Top usuarios",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "usuario": { "type": "string" },
-                    "cantidad": { "type": "integer" }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-  "/api/reportes/ocupacion-horarios": {
-    "get": {
-      "tags": ["Reportes"],
-      "summary": "Obtener ocupación por horario",
-      "responses": {
-        "200": {
-          "description": "Ocupación por hora",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "hora": { "type": "string" },
-                    "cantidad": { "type": "integer" }
-                  }
-                }
-              }
-            }
+            "text/csv": {}
           }
         }
       }

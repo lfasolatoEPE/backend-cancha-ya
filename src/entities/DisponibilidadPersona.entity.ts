@@ -4,7 +4,7 @@ import { Deporte } from "./Deporte.entity";
 import { Persona } from "./Persona.entity";
 
 @Entity()
-export class DisponibilidadJugador {
+export class DisponibilidadPersona {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 

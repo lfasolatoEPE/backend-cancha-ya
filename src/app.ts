@@ -1,45 +1,55 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
 import cors from 'cors';
-import usuarioRoutes from './routes/usuario.routes';
-import reservaRoutes from './routes/reserva.routes';
-import authRoutes from './routes/auth.routes';
-import { errorHandler } from './middlewares/error.middleware';
 import swaggerUi from 'swagger-ui-express';
 import swaggerDocument from '../docs/swagger.generated.json';
-import canchaRoutes from './routes/cancha.routes';
-import deporteRoutes from './routes/deporte.routes';
-import deudaRoutes from './routes/deuda.routes';
-import horarioRoutes from './routes/horario.routes';
-import valoracionRoutes from './routes/valoracion.routes';
-import clubRoutes from './routes/club.routes';
-import reportesRoutes from "./routes/reportes.routes";
-import disponibilidadJugadorRoutes from "./routes/disponibilidadJugador.routes";
-import competitivoRoutes from './routes/competitivo.routes';
-import desafioRoutes from './routes/desafio.routes';
-import competicionRoutes from './routes/competicion.route';
-import equipoRoutes from "./routes/equipo.routes";
+
+import { errorHandler } from './middlewares/error.middleware';
+
+// Rutas
+import authRoutes from './modules/auth/auth.routes';
+import usuarioRoutes from './modules/usuarios/usuario.routes';
+import reservaRoutes from './modules/reservas/reserva.routes';
+import canchaRoutes from './modules/canchas/cancha.routes';
+import clubRoutes from './modules/clubes/club.routes';
+import deporteRoutes from './modules/deportes/deporte.routes';
+import horarioRoutes from './modules/horarios/horario.routes';
+import valoracionRoutes from './modules/valoraciones/valoracion.routes';
+import deudaRoutes from './modules/deudas/deuda.routes';
+import disponibilidadRoutes from './modules/disponibilidades/disponibilidad.routes';
+import competitivoRoutes from './modules/perfil-competitivo/perfil.routes';
+import desafioRoutes from './modules/desafios/desafio.routes';
+import equipoRoutes from './modules/equipos/equipo.routes';
+import reportesRoutes from './modules/reportes/reportes.routes';
+import adminRoutes from './modules/admin-panel/admin.routes';
+import personaRoutes from './modules/personas/persona.routes';
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use('/api/reservas', reservaRoutes);
+
+// Montar rutas
+app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuarioRoutes);
+app.use('/api/personas', personaRoutes);
+app.use('/api/reservas', reservaRoutes);
 app.use('/api/canchas', canchaRoutes);
+app.use('/api/clubes', clubRoutes);
 app.use('/api/deportes', deporteRoutes);
 app.use('/api/horarios', horarioRoutes);
-app.use('/api/deudas', deudaRoutes);
 app.use('/api/valoraciones', valoracionRoutes);
-app.use('/api/clubes', clubRoutes);
-app.use("/api/disponibilidades", disponibilidadJugadorRoutes);
+app.use('/api/deudas', deudaRoutes);
+app.use('/api/disponibilidades', disponibilidadRoutes);
 app.use('/api/competitivo', competitivoRoutes);
 app.use('/api/desafios', desafioRoutes);
-app.use('/api/competicion', competicionRoutes);
-app.use("/api/equipos", equipoRoutes);
-app.use('/api/auth', authRoutes);
-app.use("/api/reportes", reportesRoutes);
+app.use('/api/equipos', equipoRoutes);
+app.use('/api/reportes', reportesRoutes);
+app.use('/api/admin', adminRoutes);
+
 // Swagger
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+// Middleware de errores
 app.use(errorHandler);
 
 export default app;

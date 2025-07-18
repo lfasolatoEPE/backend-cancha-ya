@@ -3,12 +3,12 @@
   "info": {
     "title": "API CanchaYa",
     "version": "1.1.0",
-    "description": "Documentación de la API para gestión de usuarios, reservas, equipos, desafíos y más."
+    "description": "Documentación de la API para gestión de usuarios, reservas, equipos, desafíos, valoraciones, reportes y más."
   },
   "servers": [
-  {
-    "url": "https://backend-cancha-ya-production.up.railway.app/api"
-  }
+    {
+      "url": "https://backend-cancha-ya-production.up.railway.app/api"
+    }
   ],
   "components": {
     "securitySchemes": {
@@ -21,18 +21,21 @@
   },
   "tags": [
     { "name": "Auth", "description": "Login y autenticación" },
-    { "name": "Usuarios", "description": "Gestión de usuarios" },
+    { "name": "Usuarios", "description": "Gestión de usuarios con rol y persona" },
+    { "name": "Personas", "description": "Información de las personas" },
     { "name": "Reservas", "description": "Gestión de reservas de canchas" },
-    { "name": "Canchas", "description": "Administración de canchas" },
-    { "name": "Clubes", "description": "Administración de clubes" },
-    { "name": "Deportes", "description": "Gestión de deportes" },
-    { "name": "Deudas", "description": "Administración de deudas" },
-    { "name": "Horarios", "description": "Disponibilidad de horarios" },
-    { "name": "Valoraciones", "description": "Opiniones y calificaciones" },
-    { "name": "Reportes", "description": "Estadísticas y reportes operativos" },
-    { "name": "Equipos", "description": "Gestión de equipos deportivos" },
     { "name": "Desafíos", "description": "Desafíos competitivos entre equipos" },
-    { "name": "Ranking", "description": "Ranking de jugadores" }
+    { "name": "Equipos", "description": "Gestión de equipos deportivos" },
+    { "name": "Clubes", "description": "Administración de clubes" },
+    { "name": "Canchas", "description": "Administración de canchas" },
+    { "name": "Deportes", "description": "Gestión de deportes" },
+    { "name": "Horarios", "description": "Disponibilidad de horarios" },
+    { "name": "Disponibilidades", "description": "Horarios disponibles para jugar" },
+    { "name": "PerfilCompetitivo", "description": "Ranking ELO de jugadores" },
+    { "name": "Deudas", "description": "Administración de deudas de personas" },
+    { "name": "Valoraciones", "description": "Opiniones y calificaciones de usuarios" },
+    { "name": "Reportes", "description": "Exportaciones de datos en CSV" },
+    { "name": "Admin", "description": "Panel de administración y estadísticas" }
   ],
   "paths": {}
 }

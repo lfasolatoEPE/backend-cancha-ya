@@ -31,9 +31,6 @@ export class Usuario {
   @JoinColumn()
   rol!: Rol;
 
-  @OneToMany(() => Valoracion, valoracion => valoracion.usuario)
-  valoraciones!: Valoracion[];
-
   @OneToOne(() => PerfilCompetitivo, perfil => perfil.usuario)
   perfilCompetitivo!: PerfilCompetitivo;
 

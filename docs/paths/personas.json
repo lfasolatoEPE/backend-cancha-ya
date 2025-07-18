@@ -1,0 +1,31 @@
+{
+  "/personas": {
+    "get": {
+      "summary": "Listar todas las personas",
+      "tags": ["Personas"],
+      "security": [{ "bearerAuth": [] }],
+      "responses": {
+        "200": { "description": "Lista de personas del sistema" }
+      }
+    }
+  },
+  "/personas/{id}": {
+    "get": {
+      "summary": "Obtener persona por ID",
+      "tags": ["Personas"],
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string" }
+        }
+      ],
+      "responses": {
+        "200": { "description": "Persona encontrada" },
+        "404": { "description": "Persona no encontrada" }
+      }
+    }
+  }
+}

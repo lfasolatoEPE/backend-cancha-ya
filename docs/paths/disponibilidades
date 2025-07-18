@@ -1,0 +1,51 @@
+{
+  "/disponibilidades": {
+    "post": {
+      "summary": "Registrar disponibilidad de una persona",
+      "tags": ["Disponibilidades"],
+      "security": [{ "bearerAuth": [] }],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "personaId": { "type": "string" },
+                "deporteId": { "type": "string" },
+                "clubIds": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "fechaDesde": { "type": "string", "format": "date" },
+                "fechaHasta": { "type": "string", "format": "date" },
+                "horaDesde": { "type": "string" },
+                "horaHasta": { "type": "string" }
+              },
+              "required": [
+                "personaId",
+                "deporteId",
+                "clubIds",
+                "fechaDesde",
+                "fechaHasta",
+                "horaDesde",
+                "horaHasta"
+              ]
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": { "description": "Disponibilidad registrada" }
+      }
+    },
+    "get": {
+      "summary": "Listar todas las disponibilidades",
+      "tags": ["Disponibilidades"],
+      "security": [{ "bearerAuth": [] }],
+      "responses": {
+        "200": { "description": "Lista de disponibilidades" }
+      }
+    }
+  }
+}

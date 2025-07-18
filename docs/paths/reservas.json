@@ -1,15 +1,7 @@
 {
   "/reservas": {
-    "get": {
-      "summary": "Listar reservas",
-      "tags": ["Reservas"],
-      "security": [{ "bearerAuth": [] }],
-      "responses": {
-        "200": { "description": "Lista de reservas" }
-      }
-    },
     "post": {
-      "summary": "Crear una reserva",
+      "summary": "Crear reserva",
       "tags": ["Reservas"],
       "security": [{ "bearerAuth": [] }],
       "requestBody": {
@@ -19,70 +11,82 @@
             "schema": {
               "type": "object",
               "properties": {
-                "usuarioId": { "type": "string", "format": "uuid" },
-                "canchaId": { "type": "string", "format": "uuid" },
-                "fecha": { "type": "string", "format": "date" },
-                "hora": { "type": "string" }
+                "personaId": { "type": "string" },
+                "canchaId": { "type": "string" },
+                "horarioId": { "type": "string" },
+                "fechaHora": { "type": "string", "format": "date-time" }
               },
-              "required": ["usuarioId", "canchaId", "fecha", "hora"]
+              "required": ["personaId", "canchaId", "horarioId", "fechaHora"]
             }
           }
         }
       },
       "responses": {
-        "201": { "description": "Reserva creada" }
+        "201": { "description": "Reserva creada" },
+        "400": { "description": "Error de validación o cancha ocupada" }
+      }
+    },
+    "get": {
+      "summary": "Listar todas las reservas",
+      "tags": ["Reservas"],
+      "security": [{ "bearerAuth": [] }],
+      "responses": {
+        "200": { "description": "Lista de reservas" }
       }
     }
   },
   "/reservas/{id}": {
     "get": {
-      "summary": "Obtener una reserva por ID",
+      "summary": "Obtener reserva por ID",
       "tags": ["Reservas"],
       "security": [{ "bearerAuth": [] }],
       "parameters": [
         {
-          "name": "id",
           "in": "path",
+          "name": "id",
           "required": true,
-          "schema": { "type": "string", "format": "uuid" }
+          "schema": { "type": "string" }
         }
       ],
       "responses": {
-        "200": { "description": "Reserva encontrada" }
+        "200": { "description": "Reserva encontrada" },
+        "404": { "description": "Reserva no encontrada" }
       }
     },
     "delete": {
-      "summary": "Cancelar una reserva",
+      "summary": "Cancelar reserva",
       "tags": ["Reservas"],
       "security": [{ "bearerAuth": [] }],
       "parameters": [
         {
-          "name": "id",
           "in": "path",
+          "name": "id",
           "required": true,
-          "schema": { "type": "string", "format": "uuid" }
+          "schema": { "type": "string" }
         }
       ],
       "responses": {
-        "200": { "description": "Reserva cancelada" }
+        "200": { "description": "Reserva cancelada" },
+        "404": { "description": "No encontrada" }
       }
     }
   },
   "/reservas/{id}/confirmar": {
     "patch": {
-      "summary": "Confirmar una reserva",
+      "summary": "Confirmar reserva",
       "tags": ["Reservas"],
       "security": [{ "bearerAuth": [] }],
       "parameters": [
         {
-          "name": "id",
           "in": "path",
+          "name": "id",
           "required": true,
-          "schema": { "type": "string", "format": "uuid" }
+          "schema": { "type": "string" }
         }
       ],
       "responses": {
-        "200": { "description": "Reserva confirmada" }
+        "200": { "description": "Reserva confirmada" },
+        "404": { "description": "No encontrada" }
       }
     }
   }

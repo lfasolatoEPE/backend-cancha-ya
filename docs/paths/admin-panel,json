@@ -1,0 +1,52 @@
+{
+  "/admin/resumen": {
+    "get": {
+      "summary": "Resumen general del sistema",
+      "tags": ["Admin"],
+      "security": [{ "bearerAuth": [] }],
+      "responses": {
+        "200": { "description": "Estadísticas del sistema" }
+      }
+    }
+  },
+  "/admin/top-jugadores": {
+    "get": {
+      "summary": "Top 10 jugadores por ranking",
+      "tags": ["Admin"],
+      "security": [{ "bearerAuth": [] }],
+      "responses": {
+        "200": { "description": "Lista de jugadores con mayor ranking" }
+      }
+    }
+  },
+  "/admin/top-equipos": {
+    "get": {
+      "summary": "Top 10 equipos por ranking",
+      "tags": ["Admin"],
+      "security": [{ "bearerAuth": [] }],
+      "responses": {
+        "200": { "description": "Lista de equipos con mayor ranking" }
+      }
+    }
+  },
+  "/admin/canchas-mas-usadas": {
+    "get": {
+      "summary": "Canchas más usadas por cantidad de reservas",
+      "tags": ["Admin"],
+      "security": [{ "bearerAuth": [] }],
+      "responses": {
+        "200": { "description": "Canchas con más uso" }
+      }
+    }
+  },
+  "/admin/personas-con-deuda": {
+    "get": {
+      "summary": "Personas con deuda acumulada",
+      "tags": ["Admin"],
+      "security": [{ "bearerAuth": [] }],
+      "responses": {
+        "200": { "description": "Ranking de deudores" }
+      }
+    }
+  }
+}

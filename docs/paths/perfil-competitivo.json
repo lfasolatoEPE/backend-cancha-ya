@@ -1,0 +1,12 @@
+{
+  "/perfil-competitivo": {
+    "get": {
+      "summary": "Obtener perfil competitivo propio",
+      "tags": ["PerfilCompetitivo"],
+      "security": [{ "bearerAuth": [] }],
+      "responses": {
+        "200": { "description": "Perfil obtenido" }
+      }
+    }
+  }
+}

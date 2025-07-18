@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
-import { Usuario } from './Usuario.entity';
+import { Persona } from './Persona.entity';
 
 @Entity()
 export class Valoracion {
@@ -21,6 +21,6 @@ export class Valoracion {
   @Column({ nullable: true })
   comentario?: string;
 
-  @ManyToOne(() => Usuario, usuario => usuario.valoraciones, { eager: true })
-  usuario!: Usuario;
+  @ManyToOne(() => Persona, { eager: true })
+  persona!: Persona;
 }

@@ -8,7 +8,7 @@
       }
     },
     "post": {
-      "summary": "Crear un club",
+      "summary": "Crear club",
       "tags": ["Clubes"],
       "security": [{ "bearerAuth": [] }],
       "requestBody": {
@@ -30,71 +30,6 @@
       },
       "responses": {
         "201": { "description": "Club creado" }
-      }
-    }
-  },
-  "/clubes/{id}": {
-    "get": {
-      "summary": "Obtener un club por ID",
-      "tags": ["Clubes"],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string", "format": "uuid" }
-        }
-      ],
-      "responses": {
-        "200": { "description": "Club encontrado" }
-      }
-    },
-    "patch": {
-      "summary": "Actualizar un club",
-      "tags": ["Clubes"],
-      "security": [{ "bearerAuth": [] }],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string", "format": "uuid" }
-        }
-      ],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "nombre": { "type": "string" },
-                "direccion": { "type": "string" },
-                "telefono": { "type": "string" },
-                "email": { "type": "string" }
-              }
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": { "description": "Club actualizado" }
-      }
-    },
-    "delete": {
-      "summary": "Eliminar un club",
-      "tags": ["Clubes"],
-      "security": [{ "bearerAuth": [] }],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string", "format": "uuid" }
-        }
-      ],
-      "responses": {
-        "200": { "description": "Club eliminado" }
       }
     }
   }

@@ -1,100 +1,54 @@
 {
   "/deudas": {
+    "post": {
+      "summary": "Registrar deuda para persona",
+      "tags": ["Deudas"],
+      "security": [{ "bearerAuth": [] }],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "personaId": { "type": "string" },
+                "monto": { "type": "number", "format": "decimal" },
+                "fechaVencimiento": { "type": "string", "format": "date" }
+              },
+              "required": ["personaId", "monto", "fechaVencimiento"]
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": { "description": "Deuda registrada" }
+      }
+    },
     "get": {
-      "summary": "Listar deudas",
+      "summary": "Listar todas las deudas",
       "tags": ["Deudas"],
       "security": [{ "bearerAuth": [] }],
       "responses": {
         "200": { "description": "Lista de deudas" }
       }
-    },
-    "post": {
-      "summary": "Crear una deuda",
-      "tags": ["Deudas"],
-      "security": [{ "bearerAuth": [] }],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "usuarioId": { "type": "string", "format": "uuid" },
-                "monto": { "type": "number" },
-                "fechaVencimiento": { "type": "string", "format": "date" }
-              },
-              "required": ["usuarioId", "monto"]
-            }
-          }
-        }
-      },
-      "responses": {
-        "201": { "description": "Deuda creada" }
-      }
     }
   },
-  "/deudas/{id}": {
+  "/deudas/persona/{personaId}": {
     "get": {
-      "summary": "Obtener una deuda por ID",
+      "summary": "Obtener deudas de una persona",
       "tags": ["Deudas"],
       "security": [{ "bearerAuth": [] }],
       "parameters": [
         {
-          "name": "id",
           "in": "path",
+          "name": "personaId",
           "required": true,
-          "schema": { "type": "string", "format": "uuid" }
+          "schema": { "type": "string" }
         }
       ],
       "responses": {
-        "200": { "description": "Deuda encontrada" }
-      }
-    },
-    "patch": {
-      "summary": "Actualizar una deuda",
-      "tags": ["Deudas"],
-      "security": [{ "bearerAuth": [] }],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string", "format": "uuid" }
-        }
-      ],
-      "requestBody": {
-        "required": true,
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "monto": { "type": "number" },
-                "pagada": { "type": "boolean" },
-                "fechaVencimiento": { "type": "string", "format": "date" }
-              }
-            }
-          }
-        }
-      },
-      "responses": {
-        "200": { "description": "Deuda actualizada" }
-      }
-    },
-    "delete": {
-      "summary": "Eliminar una deuda",
-      "tags": ["Deudas"],
-      "security": [{ "bearerAuth": [] }],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": { "type": "string", "format": "uuid" }
-        }
-      ],
-      "responses": {
-        "200": { "description": "Deuda eliminada" }
+        "200": { "description": "Deudas encontradas" },
+        "404": { "description": "Persona no encontrada o sin deudas" }
       }
     }
   }
