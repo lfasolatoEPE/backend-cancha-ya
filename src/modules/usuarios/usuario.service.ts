@@ -11,7 +11,13 @@ const rolRepo = AppDataSource.getRepository(Rol);
 const perfilRepo = AppDataSource.getRepository(PerfilCompetitivo);
 
 export class UsuarioService {
-  async crearUsuario(data: { nombre: string; apellido: string; email: string; password: string; rol?: string }) {
+  async crearUsuario(data: {
+    nombre: string;
+    apellido: string;
+    email: string;
+    password: string;
+    rol?: string;
+  }) {
     const { nombre, apellido, email, password, rol = 'usuario' } = data;
 
     const emailUsado = await personaRepo.findOne({ where: { email } });
@@ -51,6 +57,15 @@ export class UsuarioService {
       },
       rol: rolEntity.nombre,
     };
+  }
+
+  async crearAdmin(data: {
+    nombre: string;
+    apellido: string;
+    email: string;
+    password: string;
+  }) {
+    return this.crearUsuario({ ...data, rol: 'admin' });
   }
 
   async listarUsuarios() {

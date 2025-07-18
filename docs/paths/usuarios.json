@@ -13,8 +13,7 @@
                 "nombre": { "type": "string" },
                 "apellido": { "type": "string" },
                 "email": { "type": "string" },
-                "password": { "type": "string" },
-                "rol": { "type": "string" }
+                "password": { "type": "string" }
               },
               "required": ["nombre", "apellido", "email", "password"]
             }
@@ -24,6 +23,35 @@
       "responses": {
         "201": { "description": "Usuario creado exitosamente" },
         "400": { "description": "Error de validación o email duplicado" }
+      }
+    }
+  },
+  "/usuarios/admin": {
+    "post": {
+      "summary": "Registrar nuevo administrador",
+      "tags": ["Usuarios"],
+      "security": [{ "bearerAuth": [] }],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "nombre": { "type": "string" },
+                "apellido": { "type": "string" },
+                "email": { "type": "string", "format": "email" },
+                "password": { "type": "string", "minLength": 6 }
+              },
+              "required": ["nombre", "apellido", "email", "password"]
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": { "description": "Administrador creado" },
+        "403": { "description": "No autorizado" },
+        "400": { "description": "Error en los datos enviados" }
       }
     }
   },
