@@ -8,4 +8,8 @@ export class ActualizarUsuarioDto {
   @IsOptional()
   @IsString()
   nombre?: string;
+  
+  @IsOptional()
+  @IsString()
+  apellido?: string;
 }

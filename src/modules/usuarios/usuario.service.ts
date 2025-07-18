@@ -11,13 +11,13 @@ const rolRepo = AppDataSource.getRepository(Rol);
 const perfilRepo = AppDataSource.getRepository(PerfilCompetitivo);
 
 export class UsuarioService {
-  async crearUsuario(data: { nombre: string; email: string; password: string; rol?: string }) {
-    const { nombre, email, password, rol = 'usuario' } = data;
+  async crearUsuario(data: { nombre: string; apellido: string; email: string; password: string; rol?: string }) {
+    const { nombre, apellido, email, password, rol = 'usuario' } = data;
 
     const emailUsado = await personaRepo.findOne({ where: { email } });
     if (emailUsado) throw new Error('El email ya está registrado');
 
-    const persona = personaRepo.create({ nombre, email });
+    const persona = personaRepo.create({ nombre, apellido, email });
     await personaRepo.save(persona);
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -46,6 +46,7 @@ export class UsuarioService {
       persona: {
         id: persona.id,
         nombre: persona.nombre,
+        apellido: persona.apellido,
         email: persona.email,
       },
       rol: rolEntity.nombre,
@@ -58,7 +59,7 @@ export class UsuarioService {
       select: {
         id: true,
         activo: true,
-        persona: { nombre: true, email: true },
+        persona: { nombre: true, apellido: true, email: true },
         rol: { nombre: true },
       },
     });
@@ -66,7 +67,7 @@ export class UsuarioService {
     return usuarios;
   }
 
-  async actualizarUsuario(id: string, data: { nombre?: string; email?: string }) {
+  async actualizarUsuario(id: string, data: { nombre?: string; apellido?: string; email?: string }) {
     const usuario = await usuarioRepo.findOne({
       where: { id },
       relations: ['persona'],
@@ -76,6 +77,7 @@ export class UsuarioService {
 
     if (data.email) usuario.persona.email = data.email;
     if (data.nombre) usuario.persona.nombre = data.nombre;
+    if (data.apellido) usuario.persona.apellido = data.apellido;
 
     await personaRepo.save(usuario.persona);
 
@@ -83,6 +85,7 @@ export class UsuarioService {
       id: usuario.id,
       persona: {
         nombre: usuario.persona.nombre,
+        apellido: usuario.persona.apellido,
         email: usuario.persona.email,
       },
     };
