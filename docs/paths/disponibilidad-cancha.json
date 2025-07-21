@@ -2,7 +2,7 @@
   "/disponibilidad-cancha": {
     "post": {
       "summary": "Crear disponibilidad horaria para una cancha",
-      "tags": ["DisponibilidadCancha"],
+      "tags": ["Cancha"],
       "security": [{ "bearerAuth": [] }],
       "requestBody": {
         "required": true,
@@ -35,7 +35,7 @@
   "/disponibilidad-cancha/{canchaId}": {
     "get": {
       "summary": "Listar disponibilidades por cancha",
-      "tags": ["DisponibilidadCancha"],
+      "tags": ["Cancha"],
       "security": [{ "bearerAuth": [] }],
       "parameters": [
         {
@@ -78,7 +78,7 @@
   "/disponibilidad-cancha/{id}": {
     "delete": {
       "summary": "Eliminar disponibilidad horaria",
-      "tags": ["DisponibilidadCancha"],
+      "tags": ["Cancha"],
       "security": [{ "bearerAuth": [] }],
       "parameters": [
         {
