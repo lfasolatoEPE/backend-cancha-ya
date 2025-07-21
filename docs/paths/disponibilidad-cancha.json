@@ -1,0 +1,97 @@
+{
+  "/disponibilidad-cancha": {
+    "post": {
+      "summary": "Crear disponibilidad horaria para una cancha",
+      "tags": ["DisponibilidadCancha"],
+      "security": [{ "bearerAuth": [] }],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "canchaId": { "type": "string", "format": "uuid" },
+                "horarioId": { "type": "string", "format": "uuid" },
+                "diaSemana": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 6,
+                  "description": "0 = domingo, 6 = sábado"
+                },
+                "disponible": { "type": "boolean", "default": true }
+              },
+              "required": ["canchaId", "horarioId", "diaSemana"]
+            }
+          }
+        }
+      },
+      "responses": {
+        "201": { "description": "Disponibilidad creada exitosamente" },
+        "400": { "description": "Error en los datos enviados" }
+      }
+    }
+  },
+  "/disponibilidad-cancha/{canchaId}": {
+    "get": {
+      "summary": "Listar disponibilidades por cancha",
+      "tags": ["DisponibilidadCancha"],
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "canchaId",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "responses": {
+        "200": {
+          "description": "Lista de disponibilidades",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "diaSemana": { "type": "integer" },
+                    "disponible": { "type": "boolean" },
+                    "horario": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string" },
+                        "horaInicio": { "type": "string" },
+                        "horaFin": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/disponibilidad-cancha/{id}": {
+    "delete": {
+      "summary": "Eliminar disponibilidad horaria",
+      "tags": ["DisponibilidadCancha"],
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
+      "responses": {
+        "200": { "description": "Disponibilidad eliminada" },
+        "400": { "description": "Error al eliminar disponibilidad" }
+      }
+    }
+  }
+}

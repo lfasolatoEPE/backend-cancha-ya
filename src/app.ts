@@ -16,12 +16,14 @@ import horarioRoutes from './modules/horarios/horario.routes';
 import valoracionRoutes from './modules/valoraciones/valoracion.routes';
 import deudaRoutes from './modules/deudas/deuda.routes';
 import disponibilidadRoutes from './modules/disponibilidades/disponibilidad.routes';
+import disponibilidadCanchaRoutes from './modules/disponibilidad-cancha/disponibilidad-cancha.routes';
 import competitivoRoutes from './modules/perfil-competitivo/perfil.routes';
 import desafioRoutes from './modules/desafios/desafio.routes';
 import equipoRoutes from './modules/equipos/equipo.routes';
 import reportesRoutes from './modules/reportes/reportes.routes';
 import adminRoutes from './modules/admin-panel/admin.routes';
 import personaRoutes from './modules/personas/persona.routes';
+import rankingRoutes from './modules/ranking/ranking.routes';
 
 const app = express();
 
@@ -39,10 +41,12 @@ app.use('/api/deportes', deporteRoutes);
 app.use('/api/horarios', horarioRoutes);
 app.use('/api/valoraciones', valoracionRoutes);
 app.use('/api/deudas', deudaRoutes);
+app.use('/api/disponibilid-cancha', disponibilidadCanchaRoutes);
 app.use('/api/disponibilidades', disponibilidadRoutes);
 app.use('/api/competitivo', competitivoRoutes);
 app.use('/api/desafios', desafioRoutes);
 app.use('/api/equipos', equipoRoutes);
+app.use('/api/ranking', rankingRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/admin', adminRoutes);
 

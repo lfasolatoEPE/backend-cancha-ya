@@ -31,6 +31,7 @@
     { "name": "Deportes", "description": "Gestión de deportes" },
     { "name": "Horarios", "description": "Disponibilidad de horarios" },
     { "name": "Disponibilidades", "description": "Horarios disponibles para jugar" },
+    { "name": "DisponibilidadCancha", "description": "Horarios de canchas disponibles para jugar" },
     { "name": "PerfilCompetitivo", "description": "Ranking ELO de jugadores" },
     { "name": "Deudas", "description": "Administración de deudas de personas" },
     { "name": "Valoraciones", "description": "Opiniones y calificaciones de usuarios" },

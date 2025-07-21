@@ -4,12 +4,14 @@ import { Persona } from '../../entities/Persona.entity';
 import { Cancha } from '../../entities/Cancha.entity';
 import { Deuda } from '../../entities/Deuda.entity';
 import { Horario } from '../../entities/Horario.entity';
+import { Auditoria } from '../../entities/Auditoria.entity';
 
 const reservaRepo = AppDataSource.getRepository(Reserva);
 const personaRepo = AppDataSource.getRepository(Persona);
 const canchaRepo = AppDataSource.getRepository(Cancha);
 const deudaRepo = AppDataSource.getRepository(Deuda);
 const horarioRepo = AppDataSource.getRepository(Horario);
+const auditoriaRepo = AppDataSource.getRepository(Auditoria);
 
 export class ReservaService {
   async crearReserva(dto: {
@@ -51,24 +53,61 @@ export class ReservaService {
       cancha,
       horario
     });
-
+    await auditoriaRepo.save(
+    auditoriaRepo.create({
+      accion: 'crear_reserva',
+      descripcion: `Persona ${persona.nombre} ${persona.apellido} creó una reserva en cancha ${cancha.nombre}`,
+      entidad: 'reserva',
+      entidadId: reserva.id
+    })
+);
     return await reservaRepo.save(reserva);
   }
 
   async confirmarReserva(id: string) {
-    const reserva = await reservaRepo.findOne({ where: { id } });
+    const reserva = await reservaRepo.findOne({
+      where: { id },
+      relations: ['persona', 'cancha']
+    });
+
     if (!reserva) throw new Error('Reserva no encontrada');
 
     reserva.estado = EstadoReserva.Confirmada;
-    return await reservaRepo.save(reserva);
+    const actualizada = await reservaRepo.save(reserva);
+
+    await auditoriaRepo.save(
+      auditoriaRepo.create({
+        accion: 'confirmar_reserva',
+        descripcion: `Reserva confirmada por ${reserva.persona.nombre} ${reserva.persona.apellido} en cancha ${reserva.cancha.nombre}`,
+        entidad: 'reserva',
+        entidadId: reserva.id
+      })
+    );
+
+    return actualizada;
   }
 
   async cancelarReserva(id: string) {
-    const reserva = await reservaRepo.findOne({ where: { id } });
+    const reserva = await reservaRepo.findOne({
+      where: { id },
+      relations: ['persona', 'cancha']
+    });
+
     if (!reserva) throw new Error('Reserva no encontrada');
 
     reserva.estado = EstadoReserva.Cancelada;
-    return await reservaRepo.save(reserva);
+    const actualizada = await reservaRepo.save(reserva);
+
+    await auditoriaRepo.save(
+      auditoriaRepo.create({
+        accion: 'cancelar_reserva',
+        descripcion: `Reserva cancelada por ${reserva.persona.nombre} ${reserva.persona.apellido} en cancha ${reserva.cancha.nombre}`,
+        entidad: 'reserva',
+        entidadId: reserva.id
+      })
+    );
+
+    return actualizada;
   }
 
   async obtenerTodas() {

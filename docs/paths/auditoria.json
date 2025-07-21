@@ -1,0 +1,21 @@
+{
+  "/auditoria": {
+    "get": {
+      "summary": "Auditoría del sistema",
+      "tags": ["Admin"],
+      "security": [{ "bearerAuth": [] }],
+      "parameters": [
+        { "in": "query", "name": "usuarioId", "schema": { "type": "string" } },
+        { "in": "query", "name": "accion", "schema": { "type": "string" } },
+        { "in": "query", "name": "entidad", "schema": { "type": "string" } },
+        { "in": "query", "name": "fechaDesde", "schema": { "type": "string", "format": "date" } },
+        { "in": "query", "name": "fechaHasta", "schema": { "type": "string", "format": "date" } }
+      ],
+      "responses": {
+        "200": {
+          "description": "Lista de eventos registrados"
+        }
+      }
+    }
+  }
+}

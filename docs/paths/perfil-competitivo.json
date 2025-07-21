@@ -1,11 +1,62 @@
 {
   "/perfil-competitivo": {
     "get": {
-      "summary": "Obtener perfil competitivo propio",
-      "tags": ["PerfilCompetitivo"],
+      "summary": "Obtener mi perfil competitivo",
+      "tags": ["Ranking"],
       "security": [{ "bearerAuth": [] }],
       "responses": {
-        "200": { "description": "Perfil obtenido" }
+        "200": {
+          "description": "Perfil competitivo del usuario logueado",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "string" },
+                  "modoCompetitivo": { "type": "boolean" },
+                  "ranking": { "type": "number" },
+                  "usuario": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string" },
+                      "persona": {
+                        "type": "object",
+                        "properties": {
+                          "nombre": { "type": "string" },
+                          "apellido": { "type": "string" },
+                          "email": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "patch": {
+      "summary": "Actualizar mi perfil competitivo",
+      "tags": ["Ranking"],
+      "security": [{ "bearerAuth": [] }],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "modoCompetitivo": { "type": "boolean" },
+                "ranking": { "type": "number" }
+              }
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": { "description": "Perfil actualizado" },
+        "400": { "description": "Error de validación" }
       }
     }
   }

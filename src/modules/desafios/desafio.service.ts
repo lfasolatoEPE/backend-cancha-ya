@@ -5,18 +5,20 @@ import { Deporte } from '../../entities/Deporte.entity';
 import { Reserva } from '../../entities/Reserva.entity';
 import { PerfilCompetitivo } from '../../entities/PerfilCompetitivo.entity';
 import { Persona } from '../../entities/Persona.entity';
+import { Auditoria } from '../../entities/Auditoria.entity';
 
 const desafioRepo = AppDataSource.getRepository(Desafio);
 const equipoRepo = AppDataSource.getRepository(Equipo);
 const deporteRepo = AppDataSource.getRepository(Deporte);
 const reservaRepo = AppDataSource.getRepository(Reserva);
 const perfilRepo = AppDataSource.getRepository(PerfilCompetitivo);
+const auditoriaRepo = AppDataSource.getRepository(Auditoria);
 
 export class DesafioService {
   async crearDesafio(dto: { reservaId: string; equipoRetadorId: string; deporteId: string }) {
     const { reservaId, equipoRetadorId, deporteId } = dto;
 
-    const reserva = await reservaRepo.findOne({ where: { id: reservaId } });
+    const reserva = await reservaRepo.findOne({ where: { id: reservaId }, relations: ['cancha'] });
     if (!reserva) throw new Error('Reserva no encontrada');
 
     const yaExiste = await desafioRepo.findOne({ where: { reserva: { id: reservaId } } });
@@ -35,11 +37,23 @@ export class DesafioService {
       estado: EstadoDesafio.Pendiente
     });
 
-    return await desafioRepo.save(desafio);
+    const creado = await desafioRepo.save(desafio);
+
+    // Auditoría
+    await auditoriaRepo.save(
+      auditoriaRepo.create({
+        accion: 'crear_desafio',
+        descripcion: `Desafío creado por el equipo ${equipoRetador.nombre} en cancha ${reserva.cancha?.nombre ?? reserva.id}`,
+        entidad: 'desafio',
+        entidadId: creado.id
+      })
+    );
+
+    return creado;
   }
 
   async aceptarDesafio(desafioId: string, equipoRivalId: string) {
-    const desafio = await desafioRepo.findOne({ where: { id: desafioId } });
+    const desafio = await desafioRepo.findOne({ where: { id: desafioId }, relations: ['equipoRetador'] });
     if (!desafio) throw new Error('Desafío no encontrado');
     if (desafio.estado !== EstadoDesafio.Pendiente)
       throw new Error('Solo se pueden aceptar desafíos pendientes');
@@ -50,19 +64,30 @@ export class DesafioService {
     desafio.equipoRival = equipoRival;
     desafio.estado = EstadoDesafio.Aceptado;
 
-    return await desafioRepo.save(desafio);
+    const actualizado = await desafioRepo.save(desafio);
+
+    // Auditoría
+    await auditoriaRepo.save(
+      auditoriaRepo.create({
+        accion: 'aceptar_desafio',
+        descripcion: `El equipo ${equipoRival.nombre} aceptó el desafío contra ${desafio.equipoRetador.nombre}`,
+        entidad: 'desafio',
+        entidadId: actualizado.id
+      })
+    );
+
+    return actualizado;
   }
 
   async finalizarDesafio(id: string, resultado: string) {
     const desafio = await desafioRepo.findOne({
       where: { id },
-      relations: ['equipoRetador', 'equipoRival']
+      relations: ['equipoRetador', 'equipoRival', 'reserva', 'reserva.cancha']
     });
 
     if (!desafio) throw new Error('Desafío no encontrado');
     if (desafio.estado !== EstadoDesafio.Aceptado)
       throw new Error('Solo se pueden finalizar desafíos aceptados');
-
     if (!desafio.equipoRival)
       throw new Error('El desafío no tiene rival');
 
@@ -76,15 +101,27 @@ export class DesafioService {
     desafio.resultado = resultado;
     desafio.estado = EstadoDesafio.Finalizado;
 
-    // actualizar ranking ELO
     if (golesRetador !== golesRival) {
       const ganador = golesRetador > golesRival ? desafio.equipoRetador : desafio.equipoRival!;
       const perdedor = golesRetador < golesRival ? desafio.equipoRetador : desafio.equipoRival!;
-      await this.actualizarRankingElo(ganador, perdedor); // equipo
+
+      await this.actualizarRankingElo(ganador, perdedor);
       await this.actualizarRankingEloPorJugadores(ganador.jugadores, perdedor.jugadores);
     }
 
-    return await desafioRepo.save(desafio);
+    const finalizado = await desafioRepo.save(desafio);
+
+    // Auditoría
+    await auditoriaRepo.save(
+      auditoriaRepo.create({
+        accion: 'finalizar_desafio',
+        descripcion: `Desafío finalizado en cancha ${desafio.reserva.cancha.nombre} con resultado ${resultado}`,
+        entidad: 'desafio',
+        entidadId: desafio.id
+      })
+    );
+
+    return finalizado;
   }
 
   async listarDesafios(filtros: any) {
