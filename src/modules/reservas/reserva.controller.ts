@@ -6,7 +6,8 @@ export class ReservaController {
 
   crearReserva = async (req: Request, res: Response) => {
     try {
-      const reserva = await this.service.crearReserva(req.body);
+      const { personaId, disponibilidadId, fechaHora } = req.body;
+      const reserva = await this.service.crearReserva({ personaId, disponibilidadId, fechaHora });
       res.status(201).json(reserva);
     } catch (error: any) {
       res.status(400).json({ error: error.message });

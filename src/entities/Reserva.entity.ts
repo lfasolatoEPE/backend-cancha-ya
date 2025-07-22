@@ -1,7 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
-import { Cancha } from './Cancha.entity';
-import { Horario } from './Horario.entity';
 import { Persona } from './Persona.entity';
+import { DisponibilidadHorario } from './DisponibilidadHorario.entity';
 
 export enum EstadoReserva {
   Pendiente = 'pendiente',
@@ -23,11 +22,8 @@ export class Reserva {
   @ManyToOne(() => Persona)
   persona!: Persona;
 
-  @ManyToOne(() => Cancha, cancha => cancha.reservas, { eager: true })
-  cancha!: Cancha;
-
-  @ManyToOne(() => Horario, { eager: true })
-  horario!: Horario;
+  @ManyToOne(() => DisponibilidadHorario, { eager: true })
+  disponibilidad!: DisponibilidadHorario;
 
   @Column({ type: 'enum', enum: EstadoReserva, default: EstadoReserva.Pendiente })
   estado!: EstadoReserva;

@@ -1,73 +1,80 @@
 import { AppDataSource } from '../../database/data-source';
 import { Reserva, EstadoReserva } from '../../entities/Reserva.entity';
 import { Persona } from '../../entities/Persona.entity';
-import { Cancha } from '../../entities/Cancha.entity';
 import { Deuda } from '../../entities/Deuda.entity';
-import { Horario } from '../../entities/Horario.entity';
 import { Auditoria } from '../../entities/Auditoria.entity';
+import { DisponibilidadHorario } from '../../entities/DisponibilidadHorario.entity';
 
 const reservaRepo = AppDataSource.getRepository(Reserva);
 const personaRepo = AppDataSource.getRepository(Persona);
-const canchaRepo = AppDataSource.getRepository(Cancha);
 const deudaRepo = AppDataSource.getRepository(Deuda);
-const horarioRepo = AppDataSource.getRepository(Horario);
+const disponibilidadRepo = AppDataSource.getRepository(DisponibilidadHorario);
 const auditoriaRepo = AppDataSource.getRepository(Auditoria);
 
 export class ReservaService {
   async crearReserva(dto: {
     personaId: string;
-    canchaId: string;
-    horarioId: string;
+    disponibilidadId: string;
     fechaHora: string;
   }) {
-    const { personaId, canchaId, horarioId, fechaHora } = dto;
+    const { personaId, disponibilidadId, fechaHora } = dto;
 
     const persona = await personaRepo.findOne({ where: { id: personaId } });
     if (!persona) throw new Error('Persona no encontrada');
 
-    const cancha = await canchaRepo.findOne({ where: { id: canchaId } });
-    if (!cancha) throw new Error('Cancha no encontrada');
+    const disponibilidad = await disponibilidadRepo.findOne({
+      where: { id: disponibilidadId },
+      relations: ['cancha', 'horario']
+    });
+    if (!disponibilidad) throw new Error('Disponibilidad no encontrada');
+    if (!disponibilidad.disponible) throw new Error('El horario está marcado como no disponible');
 
-    const horario = await horarioRepo.findOne({ where: { id: horarioId } });
-    if (!horario) throw new Error('Horario no encontrado');
+    const fecha = new Date(fechaHora);
+    const diaSemana = fecha.getDay();
+    if (disponibilidad.diaSemana !== diaSemana) {
+      throw new Error('La disponibilidad no corresponde al día de la semana de la fecha seleccionada');
+    }
 
     const deudasImpagas = await deudaRepo.find({
       where: { persona: { id: personaId }, pagada: false }
     });
-
     if (deudasImpagas.length > 0) {
       const total = deudasImpagas.reduce((sum, d) => sum + Number(d.monto), 0);
       throw new Error(`La persona tiene ${deudasImpagas.length} deuda(s) pendiente(s) por un total de $${total.toFixed(2)}`);
     }
 
     const yaExiste = await reservaRepo.findOne({
-      where: { cancha: { id: canchaId }, fechaHora: new Date(fechaHora) }
+      where: {
+        disponibilidad: { id: disponibilidadId },
+        fechaHora: fecha
+      }
     });
-    if (yaExiste) throw new Error('Ya existe una reserva para esa cancha, fecha y hora');
+    if (yaExiste) throw new Error('Ya existe una reserva para esa cancha, fecha y horario');
 
     const reserva = reservaRepo.create({
-      fechaHora: new Date(fechaHora),
+      fechaHora: fecha,
       creadaEl: new Date(),
       estado: EstadoReserva.Pendiente,
       persona,
-      cancha,
-      horario
+      disponibilidad
     });
+
     await auditoriaRepo.save(
-    auditoriaRepo.create({
-      accion: 'crear_reserva',
-      descripcion: `Persona ${persona.nombre} ${persona.apellido} creó una reserva en cancha ${cancha.nombre}`,
-      entidad: 'reserva',
-      entidadId: reserva.id
-    })
-);
+      auditoriaRepo.create({
+        accion: 'crear_reserva',
+        descripcion: `Persona ${persona.nombre} ${persona.apellido} creó una reserva en cancha ${disponibilidad.cancha.nombre}`,
+        entidad: 'reserva',
+        entidadId: reserva.id
+      })
+    );
+
     return await reservaRepo.save(reserva);
   }
 
   async confirmarReserva(id: string) {
     const reserva = await reservaRepo.findOne({
       where: { id },
-      relations: ['persona', 'cancha']
+      relations: ['persona', 'disponibilidad', 'disponibilidad.cancha']
     });
 
     if (!reserva) throw new Error('Reserva no encontrada');
@@ -78,7 +85,7 @@ export class ReservaService {
     await auditoriaRepo.save(
       auditoriaRepo.create({
         accion: 'confirmar_reserva',
-        descripcion: `Reserva confirmada por ${reserva.persona.nombre} ${reserva.persona.apellido} en cancha ${reserva.cancha.nombre}`,
+        descripcion: `Reserva confirmada por ${reserva.persona.nombre} ${reserva.persona.apellido} en cancha ${reserva.disponibilidad.cancha.nombre}`,
         entidad: 'reserva',
         entidadId: reserva.id
       })
@@ -90,7 +97,7 @@ export class ReservaService {
   async cancelarReserva(id: string) {
     const reserva = await reservaRepo.findOne({
       where: { id },
-      relations: ['persona', 'cancha']
+      relations: ['persona', 'disponibilidad', 'disponibilidad.cancha']
     });
 
     if (!reserva) throw new Error('Reserva no encontrada');
@@ -101,7 +108,7 @@ export class ReservaService {
     await auditoriaRepo.save(
       auditoriaRepo.create({
         accion: 'cancelar_reserva',
-        descripcion: `Reserva cancelada por ${reserva.persona.nombre} ${reserva.persona.apellido} en cancha ${reserva.cancha.nombre}`,
+        descripcion: `Reserva cancelada por ${reserva.persona.nombre} ${reserva.persona.apellido} en cancha ${reserva.disponibilidad.cancha.nombre}`,
         entidad: 'reserva',
         entidadId: reserva.id
       })
@@ -111,13 +118,15 @@ export class ReservaService {
   }
 
   async obtenerTodas() {
-    return await reservaRepo.find({ relations: ['persona', 'cancha', 'horario'] });
+    return await reservaRepo.find({
+      relations: ['persona', 'disponibilidad', 'disponibilidad.cancha', 'disponibilidad.horario']
+    });
   }
 
   async obtenerPorId(id: string) {
     const reserva = await reservaRepo.findOne({
       where: { id },
-      relations: ['persona', 'cancha', 'horario']
+      relations: ['persona', 'disponibilidad', 'disponibilidad.cancha', 'disponibilidad.horario']
     });
     if (!reserva) throw new Error('Reserva no encontrada');
     return reserva;
