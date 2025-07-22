@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne } from 'typeorm';
-import { Reserva } from './Reserva.entity';
 import { Deporte } from './Deporte.entity';
 import { DisponibilidadHorario } from './DisponibilidadHorario.entity';
 import { Club } from './Club.entity';
@@ -24,16 +23,12 @@ export class Cancha {
   @Column({ default: true })
   activa!: boolean;
 
-  @OneToMany(() => Reserva, reserva => reserva.cancha)
-  reservas!: Reserva[];
-
   @ManyToOne(() => Deporte, { nullable: true })
   deporte!: Deporte;
-
-  @OneToMany(() => DisponibilidadHorario, disponibilidad => disponibilidad.cancha)
-  disponibilidades!: DisponibilidadHorario[];
 
   @ManyToOne(() => Club, club => club.canchas)
   club!: Club;
 
+  @OneToMany(() => DisponibilidadHorario, disponibilidad => disponibilidad.cancha)
+  disponibilidades!: DisponibilidadHorario[];
 }
