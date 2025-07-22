@@ -18,7 +18,10 @@ export class DesafioService {
   async crearDesafio(dto: { reservaId: string; equipoRetadorId: string; deporteId: string }) {
     const { reservaId, equipoRetadorId, deporteId } = dto;
 
-    const reserva = await reservaRepo.findOne({ where: { id: reservaId }, relations: ['cancha'] });
+    const reserva = await reservaRepo.findOne({
+      where: { id: reservaId },
+      relations: ['disponibilidad', 'disponibilidad.cancha']
+    });
     if (!reserva) throw new Error('Reserva no encontrada');
 
     const yaExiste = await desafioRepo.findOne({ where: { reserva: { id: reservaId } } });
@@ -39,11 +42,10 @@ export class DesafioService {
 
     const creado = await desafioRepo.save(desafio);
 
-    // Auditoría
     await auditoriaRepo.save(
       auditoriaRepo.create({
         accion: 'crear_desafio',
-        descripcion: `Desafío creado por el equipo ${equipoRetador.nombre} en cancha ${reserva.cancha?.nombre ?? reserva.id}`,
+        descripcion: `Desafío creado por el equipo ${equipoRetador.nombre} en cancha ${reserva.disponibilidad.cancha.nombre}`,
         entidad: 'desafio',
         entidadId: creado.id
       })
@@ -53,7 +55,10 @@ export class DesafioService {
   }
 
   async aceptarDesafio(desafioId: string, equipoRivalId: string) {
-    const desafio = await desafioRepo.findOne({ where: { id: desafioId }, relations: ['equipoRetador'] });
+    const desafio = await desafioRepo.findOne({
+      where: { id: desafioId },
+      relations: ['equipoRetador']
+    });
     if (!desafio) throw new Error('Desafío no encontrado');
     if (desafio.estado !== EstadoDesafio.Pendiente)
       throw new Error('Solo se pueden aceptar desafíos pendientes');
@@ -66,7 +71,6 @@ export class DesafioService {
 
     const actualizado = await desafioRepo.save(desafio);
 
-    // Auditoría
     await auditoriaRepo.save(
       auditoriaRepo.create({
         accion: 'aceptar_desafio',
@@ -82,7 +86,13 @@ export class DesafioService {
   async finalizarDesafio(id: string, resultado: string) {
     const desafio = await desafioRepo.findOne({
       where: { id },
-      relations: ['equipoRetador', 'equipoRival', 'reserva', 'reserva.cancha']
+      relations: [
+        'equipoRetador',
+        'equipoRival',
+        'reserva',
+        'reserva.disponibilidad',
+        'reserva.disponibilidad.cancha'
+      ]
     });
 
     if (!desafio) throw new Error('Desafío no encontrado');
@@ -111,11 +121,10 @@ export class DesafioService {
 
     const finalizado = await desafioRepo.save(desafio);
 
-    // Auditoría
     await auditoriaRepo.save(
       auditoriaRepo.create({
         accion: 'finalizar_desafio',
-        descripcion: `Desafío finalizado en cancha ${desafio.reserva.cancha.nombre} con resultado ${resultado}`,
+        descripcion: `Desafío finalizado en cancha ${desafio.reserva.disponibilidad.cancha.nombre} con resultado ${resultado}`,
         entidad: 'desafio',
         entidadId: desafio.id
       })
@@ -133,6 +142,8 @@ export class DesafioService {
       .leftJoinAndSelect('desafio.equipoRival', 'equipoRival')
       .leftJoinAndSelect('desafio.deporte', 'deporte')
       .leftJoinAndSelect('desafio.reserva', 'reserva')
+      .leftJoinAndSelect('reserva.disponibilidad', 'disponibilidad')
+      .leftJoinAndSelect('disponibilidad.cancha', 'cancha')
       .leftJoinAndSelect('equipoRetador.jugadores', 'jugadorRetador')
       .leftJoinAndSelect('equipoRival.jugadores', 'jugadorRival');
 
@@ -156,8 +167,7 @@ export class DesafioService {
 
   private async actualizarRankingElo(ganador: Equipo, perdedor: Equipo) {
     const k = 32;
-    const expectedGanador =
-      1 / (1 + Math.pow(10, (perdedor.ranking - ganador.ranking) / 400));
+    const expectedGanador = 1 / (1 + Math.pow(10, (perdedor.ranking - ganador.ranking) / 400));
     const expectedPerdedor = 1 - expectedGanador;
 
     ganador.ranking = Math.round(ganador.ranking + k * (1 - expectedGanador));
@@ -175,7 +185,6 @@ export class DesafioService {
   ) {
     const k = 32;
 
-    // Traer perfiles de todos los jugadores
     const perfilesGanadores = await perfilRepo.find({
       where: jugadoresGanador.map(j => ({ usuario: { persona: { id: j.id } } })),
       relations: ['usuario', 'usuario.persona']
@@ -186,14 +195,12 @@ export class DesafioService {
       relations: ['usuario', 'usuario.persona']
     });
 
-    // Ranking promedio por equipo
     const rankingGanador = this.promedio(perfilesGanadores.map(p => p.ranking));
     const rankingPerdedor = this.promedio(perfilesPerdedores.map(p => p.ranking));
 
     const expectedGanador = 1 / (1 + Math.pow(10, (rankingPerdedor - rankingGanador) / 400));
     const expectedPerdedor = 1 - expectedGanador;
 
-    // Actualizar ranking de cada jugador
     perfilesGanadores.forEach(perfil => {
       perfil.ranking = Math.round(perfil.ranking + k * (1 - expectedGanador));
     });
