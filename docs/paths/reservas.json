@@ -11,12 +11,11 @@
             "schema": {
               "type": "object",
               "properties": {
-                "personaId": { "type": "string" },
-                "canchaId": { "type": "string" },
-                "horarioId": { "type": "string" },
+                "personaId": { "type": "string", "format": "uuid" },
+                "disponibilidadId": { "type": "string", "format": "uuid" },
                 "fechaHora": { "type": "string", "format": "date-time" }
               },
-              "required": ["personaId", "canchaId", "horarioId", "fechaHora"]
+              "required": ["personaId", "disponibilidadId", "fechaHora"]
             }
           }
         }
@@ -45,7 +44,7 @@
           "in": "path",
           "name": "id",
           "required": true,
-          "schema": { "type": "string" }
+          "schema": { "type": "string", "format": "uuid" }
         }
       ],
       "responses": {
@@ -62,7 +61,7 @@
           "in": "path",
           "name": "id",
           "required": true,
-          "schema": { "type": "string" }
+          "schema": { "type": "string", "format": "uuid" }
         }
       ],
       "responses": {
@@ -81,7 +80,7 @@
           "in": "path",
           "name": "id",
           "required": true,
-          "schema": { "type": "string" }
+          "schema": { "type": "string", "format": "uuid" }
         }
       ],
       "responses": {
