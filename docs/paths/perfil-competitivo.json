@@ -13,7 +13,7 @@
                 "type": "object",
                 "properties": {
                   "id": { "type": "string" },
-                  "modoCompetitivo": { "type": "boolean" },
+                  "activo": { "type": "boolean" },
                   "ranking": { "type": "number" },
                   "usuario": {
                     "type": "object",
@@ -47,7 +47,7 @@
             "schema": {
               "type": "object",
               "properties": {
-                "modoCompetitivo": { "type": "boolean" },
+                "activo": { "type": "boolean" },
                 "ranking": { "type": "number" }
               }
             }

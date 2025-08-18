@@ -12,7 +12,6 @@ router.use(authMiddleware, authorizeRoles('admin'));
 
 router.get('/resumen', controller.resumenGeneral);
 router.get('/top-jugadores', controller.topJugadores);
-router.get('/top-equipos', controller.topEquipos);
 router.get('/canchas-mas-usadas', controller.canchasMasUsadas);
 router.get('/personas-con-deuda', controller.personasConDeuda);
 

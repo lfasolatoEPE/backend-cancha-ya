@@ -1,6 +1,11 @@
-import { IsUUID } from 'class-validator';
+import { IsArray, ArrayMinSize, IsOptional, IsString } from 'class-validator';
 
 export class AceptarDesafioDto {
-  @IsUUID()
-  equipoRivalId!: string;
+  @IsArray()
+  @ArrayMinSize(1, { message: 'Debe haber al menos un jugador rival' })
+  jugadoresRival!: string[]; // array de IDs de Persona
+
+  @IsOptional()
+  @IsString()
+  nombreRival?: string;
 }

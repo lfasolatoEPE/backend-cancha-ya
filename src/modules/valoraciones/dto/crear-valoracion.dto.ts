@@ -1,8 +1,8 @@
 import { IsIn, IsNotEmpty, IsUUID, IsInt, Min, Max, IsOptional, IsString } from 'class-validator';
 
 export class CrearValoracionDto {
-  @IsIn(['club', 'cancha', 'usuario', 'equipo'])
-  tipo_objetivo!: 'club' | 'cancha' | 'usuario' | 'equipo';
+  @IsIn(['club', 'cancha', 'usuario'])
+  tipo_objetivo!: 'club' | 'cancha' | 'usuario';
 
   @IsUUID()
   id_objetivo!: string;

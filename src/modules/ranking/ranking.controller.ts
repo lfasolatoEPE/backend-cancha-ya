@@ -9,12 +9,6 @@ export class RankingController {
     res.json(ranking);
   };
 
-  obtenerRankingPorDeporte = async (req: Request, res: Response) => {
-    const { deporteId } = req.params;
-    const ranking = await this.service.rankingPorDeporte(deporteId);
-    res.json(ranking);
-  };
-
   obtenerPerfilDeUsuario = async (req: Request, res: Response) => {
     const { usuarioId } = req.params;
     const perfil = await this.service.perfilDeUsuario(usuarioId);

@@ -3,7 +3,7 @@ import { IsBoolean, IsOptional, IsNumber, Min } from 'class-validator';
 export class ActualizarPerfilDto {
   @IsOptional()
   @IsBoolean()
-  modoCompetitivo?: boolean;
+  activo?: boolean;
 
   @IsOptional()
   @IsNumber()

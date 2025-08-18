@@ -14,11 +14,6 @@ export class AdminController {
     res.json(top);
   };
 
-  topEquipos = async (_req: Request, res: Response) => {
-    const top = await this.service.obtenerTopEquipos();
-    res.json(top);
-  };
-
   canchasMasUsadas = async (_req: Request, res: Response) => {
     const data = await this.service.obtenerCanchasMasUsadas();
     res.json(data);

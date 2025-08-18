@@ -7,7 +7,7 @@ export class Valoracion {
   id!: string;
 
   @Column()
-  tipo_objetivo!: 'club' | 'cancha' | 'usuario' | 'equipo';
+  tipo_objetivo!: 'club' | 'cancha' | 'usuario';
 
   @Column()
   id_objetivo!: string;

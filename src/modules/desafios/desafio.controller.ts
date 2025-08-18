@@ -20,8 +20,8 @@ export class DesafioController {
 
   aceptar = async (req: Request, res: Response) => {
     try {
-      const { equipoRivalId } = req.body as AceptarDesafioDto;
-      const desafio = await this.service.aceptarDesafio(req.params.id, equipoRivalId);
+      const dto = req.body as AceptarDesafioDto;
+      const desafio = await this.service.aceptarDesafio(req.params.id, dto.jugadoresRival, dto.nombreRival);
       res.json(desafio);
     } catch (error: any) {
       res.status(400).json({ error: error.message });

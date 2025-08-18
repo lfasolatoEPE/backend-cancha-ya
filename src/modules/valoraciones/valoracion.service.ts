@@ -7,7 +7,7 @@ const personaRepo = AppDataSource.getRepository(Persona);
 
 export class ValoracionService {
   async crearValoracion(personaId: string, dto: {
-    tipo_objetivo: 'club' | 'cancha' | 'usuario' | 'equipo';
+    tipo_objetivo: 'club' | 'cancha' | 'usuario';
     id_objetivo: string;
     puntaje: number;
     comentario?: string;

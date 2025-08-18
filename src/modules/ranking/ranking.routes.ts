@@ -7,7 +7,6 @@ const router = Router();
 const controller = new RankingController(new RankingService());
 
 router.get('/', authMiddleware, controller.obtenerRankingGeneral);
-router.get('/deporte/:deporteId', authMiddleware, controller.obtenerRankingPorDeporte);
 router.get('/usuario/:usuarioId', authMiddleware, controller.obtenerPerfilDeUsuario);
 
 export default router;

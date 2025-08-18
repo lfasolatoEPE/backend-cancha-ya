@@ -1,6 +1,5 @@
 import { AppDataSource } from '../../database/data-source';
 import { Desafio, EstadoDesafio } from '../../entities/Desafio.entity';
-import { Equipo } from '../../entities/Equipo.entity';
 import { Deporte } from '../../entities/Deporte.entity';
 import { Reserva } from '../../entities/Reserva.entity';
 import { PerfilCompetitivo } from '../../entities/PerfilCompetitivo.entity';
@@ -8,15 +7,20 @@ import { Persona } from '../../entities/Persona.entity';
 import { Auditoria } from '../../entities/Auditoria.entity';
 
 const desafioRepo = AppDataSource.getRepository(Desafio);
-const equipoRepo = AppDataSource.getRepository(Equipo);
+const personaRepo = AppDataSource.getRepository(Persona);
 const deporteRepo = AppDataSource.getRepository(Deporte);
 const reservaRepo = AppDataSource.getRepository(Reserva);
 const perfilRepo = AppDataSource.getRepository(PerfilCompetitivo);
 const auditoriaRepo = AppDataSource.getRepository(Auditoria);
 
 export class DesafioService {
-  async crearDesafio(dto: { reservaId: string; equipoRetadorId: string; deporteId: string }) {
-    const { reservaId, equipoRetadorId, deporteId } = dto;
+  async crearDesafio(dto: {
+    reservaId: string;
+    deporteId: string;
+    jugadoresRetador: string[];
+    nombreRetador?: string;
+  }) {
+    const { reservaId, deporteId, jugadoresRetador, nombreRetador } = dto;
 
     const reserva = await reservaRepo.findOne({
       where: { id: reservaId },
@@ -27,17 +31,19 @@ export class DesafioService {
     const yaExiste = await desafioRepo.findOne({ where: { reserva: { id: reservaId } } });
     if (yaExiste) throw new Error('Ya hay un desafío en esta reserva');
 
-    const equipoRetador = await equipoRepo.findOne({ where: { id: equipoRetadorId } });
-    if (!equipoRetador) throw new Error('Equipo retador no encontrado');
-
     const deporte = await deporteRepo.findOne({ where: { id: deporteId } });
     if (!deporte) throw new Error('Deporte no encontrado');
 
+    const jugadores = await personaRepo.findByIds(jugadoresRetador);
+    if (jugadores.length !== jugadoresRetador.length)
+      throw new Error('Uno o más jugadores retadores no existen');
+
     const desafio = desafioRepo.create({
       reserva,
-      equipoRetador,
       deporte,
-      estado: EstadoDesafio.Pendiente
+      estado: EstadoDesafio.Pendiente,
+      nombreRetador,
+      jugadoresRetador: jugadores
     });
 
     const creado = await desafioRepo.save(desafio);
@@ -45,7 +51,7 @@ export class DesafioService {
     await auditoriaRepo.save(
       auditoriaRepo.create({
         accion: 'crear_desafio',
-        descripcion: `Desafío creado por el equipo ${equipoRetador.nombre} en cancha ${reserva.disponibilidad.cancha.nombre}`,
+        descripcion: `Desafío creado (${nombreRetador ?? 'Retador'}) en cancha ${reserva.disponibilidad.cancha.nombre}`,
         entidad: 'desafio',
         entidadId: creado.id
       })
@@ -54,19 +60,21 @@ export class DesafioService {
     return creado;
   }
 
-  async aceptarDesafio(desafioId: string, equipoRivalId: string) {
+  async aceptarDesafio(desafioId: string, jugadoresRivalIds: string[], nombreRival?: string) {
     const desafio = await desafioRepo.findOne({
       where: { id: desafioId },
-      relations: ['equipoRetador']
+      relations: ['jugadoresRetador']
     });
     if (!desafio) throw new Error('Desafío no encontrado');
     if (desafio.estado !== EstadoDesafio.Pendiente)
       throw new Error('Solo se pueden aceptar desafíos pendientes');
 
-    const equipoRival = await equipoRepo.findOne({ where: { id: equipoRivalId } });
-    if (!equipoRival) throw new Error('Equipo rival no encontrado');
+    const jugadores = await personaRepo.findByIds(jugadoresRivalIds);
+    if (jugadores.length !== jugadoresRivalIds.length)
+      throw new Error('Uno o más jugadores rivales no existen');
 
-    desafio.equipoRival = equipoRival;
+    desafio.jugadoresRival = jugadores;
+    desafio.nombreRival = nombreRival;
     desafio.estado = EstadoDesafio.Aceptado;
 
     const actualizado = await desafioRepo.save(desafio);
@@ -74,7 +82,7 @@ export class DesafioService {
     await auditoriaRepo.save(
       auditoriaRepo.create({
         accion: 'aceptar_desafio',
-        descripcion: `El equipo ${equipoRival.nombre} aceptó el desafío contra ${desafio.equipoRetador.nombre}`,
+        descripcion: `${nombreRival ?? 'Rival'} aceptó el desafío contra ${desafio.nombreRetador ?? 'Retador'}`,
         entidad: 'desafio',
         entidadId: actualizado.id
       })
@@ -87,8 +95,8 @@ export class DesafioService {
     const desafio = await desafioRepo.findOne({
       where: { id },
       relations: [
-        'equipoRetador',
-        'equipoRival',
+        'jugadoresRetador',
+        'jugadoresRival',
         'reserva',
         'reserva.disponibilidad',
         'reserva.disponibilidad.cancha'
@@ -98,8 +106,8 @@ export class DesafioService {
     if (!desafio) throw new Error('Desafío no encontrado');
     if (desafio.estado !== EstadoDesafio.Aceptado)
       throw new Error('Solo se pueden finalizar desafíos aceptados');
-    if (!desafio.equipoRival)
-      throw new Error('El desafío no tiene rival');
+    if (!desafio.jugadoresRival || desafio.jugadoresRival.length === 0)
+      throw new Error('El desafío no tiene jugadores rivales');
 
     const [golesRetador, golesRival] = resultado
       .split('-')
@@ -112,11 +120,9 @@ export class DesafioService {
     desafio.estado = EstadoDesafio.Finalizado;
 
     if (golesRetador !== golesRival) {
-      const ganador = golesRetador > golesRival ? desafio.equipoRetador : desafio.equipoRival!;
-      const perdedor = golesRetador < golesRival ? desafio.equipoRetador : desafio.equipoRival!;
-
-      await this.actualizarRankingElo(ganador, perdedor);
-      await this.actualizarRankingEloPorJugadores(ganador.jugadores, perdedor.jugadores);
+      const ganadores = golesRetador > golesRival ? desafio.jugadoresRetador : desafio.jugadoresRival!;
+      const perdedores = golesRetador < golesRival ? desafio.jugadoresRetador : desafio.jugadoresRival!;
+      await this.actualizarRankingEloPorJugadores(ganadores, perdedores);
     }
 
     const finalizado = await desafioRepo.save(desafio);
@@ -134,27 +140,19 @@ export class DesafioService {
   }
 
   async listarDesafios(filtros: any) {
-    const { estado, deporteId, equipoId, jugadorId } = filtros;
+    const { estado, deporteId, jugadorId } = filtros;
 
     const query = desafioRepo
       .createQueryBuilder('desafio')
-      .leftJoinAndSelect('desafio.equipoRetador', 'equipoRetador')
-      .leftJoinAndSelect('desafio.equipoRival', 'equipoRival')
       .leftJoinAndSelect('desafio.deporte', 'deporte')
       .leftJoinAndSelect('desafio.reserva', 'reserva')
       .leftJoinAndSelect('reserva.disponibilidad', 'disponibilidad')
       .leftJoinAndSelect('disponibilidad.cancha', 'cancha')
-      .leftJoinAndSelect('equipoRetador.jugadores', 'jugadorRetador')
-      .leftJoinAndSelect('equipoRival.jugadores', 'jugadorRival');
+      .leftJoinAndSelect('desafio.jugadoresRetador', 'jugadorRetador')
+      .leftJoinAndSelect('desafio.jugadoresRival', 'jugadorRival');
 
     if (estado) query.andWhere('desafio.estado = :estado', { estado });
     if (deporteId) query.andWhere('desafio.deporte = :deporteId', { deporteId });
-    if (equipoId) {
-      query.andWhere(
-        '(desafio.equipoRetador = :equipoId OR desafio.equipoRival = :equipoId)',
-        { equipoId }
-      );
-    }
     if (jugadorId) {
       query.andWhere(
         '(jugadorRetador.id = :jugadorId OR jugadorRival.id = :jugadorId)',
@@ -163,20 +161,6 @@ export class DesafioService {
     }
 
     return await query.getMany();
-  }
-
-  private async actualizarRankingElo(ganador: Equipo, perdedor: Equipo) {
-    const k = 32;
-    const expectedGanador = 1 / (1 + Math.pow(10, (perdedor.ranking - ganador.ranking) / 400));
-    const expectedPerdedor = 1 - expectedGanador;
-
-    ganador.ranking = Math.round(ganador.ranking + k * (1 - expectedGanador));
-    perdedor.ranking = Math.round(perdedor.ranking + k * (0 - expectedPerdedor));
-
-    if (ganador.ranking < 0) ganador.ranking = 0;
-    if (perdedor.ranking < 0) perdedor.ranking = 0;
-
-    await equipoRepo.save([ganador, perdedor]);
   }
 
   private async actualizarRankingEloPorJugadores(

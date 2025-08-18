@@ -11,9 +11,5 @@ export class FiltroDesafioDto {
 
   @IsOptional()
   @IsUUID()
-  equipoId?: string;
-
-  @IsOptional()
-  @IsUUID()
   jugadorId?: string;
 }

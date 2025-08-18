@@ -18,55 +18,7 @@
                     "nombre": { "type": "string" },
                     "apellido": { "type": "string" },
                     "ranking": { "type": "number" },
-                    "modoCompetitivo": { "type": "boolean" }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  },
-
-  "/ranking/deporte/{deporteId}": {
-    "get": {
-      "summary": "Ranking por deporte (equipos)",
-      "tags": ["Ranking"],
-      "security": [{ "bearerAuth": [] }],
-      "parameters": [
-        {
-          "in": "path",
-          "name": "deporteId",
-          "required": true,
-          "schema": { "type": "string" }
-        }
-      ],
-      "responses": {
-        "200": {
-          "description": "Lista de equipos con ranking por deporte",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "equipoId": { "type": "string" },
-                    "nombre": { "type": "string" },
-                    "ranking": { "type": "number" },
-                    "deporte": { "type": "string" },
-                    "jugadores": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": { "type": "string" },
-                          "nombre": { "type": "string" },
-                          "apellido": { "type": "string" }
-                        }
-                      }
-                    }
+                    "activo": { "type": "boolean" }
                   }
                 }
               }
@@ -102,7 +54,7 @@
                   "nombre": { "type": "string" },
                   "apellido": { "type": "string" },
                   "ranking": { "type": "number" },
-                  "modoCompetitivo": { "type": "boolean" }
+                  "activo": { "type": "boolean" }
                 }
               }
             }

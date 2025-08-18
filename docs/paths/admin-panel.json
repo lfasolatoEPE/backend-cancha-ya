@@ -19,16 +19,6 @@
       }
     }
   },
-  "/admin/top-equipos": {
-    "get": {
-      "summary": "Top 10 equipos por ranking",
-      "tags": ["Admin"],
-      "security": [{ "bearerAuth": [] }],
-      "responses": {
-        "200": { "description": "Lista de equipos con mayor ranking" }
-      }
-    }
-  },
   "/admin/canchas-mas-usadas": {
     "get": {
       "summary": "Canchas más usadas por cantidad de reservas",

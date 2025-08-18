@@ -12,10 +12,14 @@
               "type": "object",
               "properties": {
                 "reservaId": { "type": "string" },
-                "equipoRetadorId": { "type": "string" },
-                "deporteId": { "type": "string" }
+                "deporteId": { "type": "string" },
+                "jugadoresRetador": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "nombreRetador": { "type": "string" }
               },
-              "required": ["reservaId", "equipoRetadorId", "deporteId"]
+              "required": ["reservaId", "deporteId", "jugadoresRetador"]
             }
           }
         }
@@ -31,7 +35,6 @@
       "parameters": [
         { "in": "query", "name": "estado", "schema": { "type": "string" } },
         { "in": "query", "name": "deporteId", "schema": { "type": "string" } },
-        { "in": "query", "name": "equipoId", "schema": { "type": "string" } },
         { "in": "query", "name": "jugadorId", "schema": { "type": "string" } }
       ],
       "responses": {
@@ -54,9 +57,13 @@
             "schema": {
               "type": "object",
               "properties": {
-                "equipoRivalId": { "type": "string" }
+                "jugadoresRival": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "nombreRival": { "type": "string" }
               },
-              "required": ["equipoRivalId"]
+              "required": ["jugadoresRival"]
             }
           }
         }

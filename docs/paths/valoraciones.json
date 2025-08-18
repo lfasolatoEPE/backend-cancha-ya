@@ -13,7 +13,7 @@
               "properties": {
                 "tipo_objetivo": {
                   "type": "string",
-                  "enum": ["club", "cancha", "usuario", "equipo"]
+                  "enum": ["club", "cancha", "usuario"]
                 },
                 "id_objetivo": { "type": "string" },
                 "puntaje": { "type": "integer", "minimum": 1, "maximum": 5 },

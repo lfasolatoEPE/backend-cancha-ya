@@ -3,7 +3,7 @@
   "info": {
     "title": "API CanchaYa",
     "version": "1.1.0",
-    "description": "Documentación de la API para gestión de usuarios, reservas, equipos, desafíos y más."
+    "description": "Documentación de la API para gestión de usuarios, reservas, desafíos, valoraciones, reportes y más."
   },
   "servers": [
     {
@@ -26,54 +26,187 @@
     },
     {
       "name": "Usuarios",
-      "description": "Gestión de usuarios"
+      "description": "Gestión de usuarios con rol y persona"
+    },
+    {
+      "name": "Personas",
+      "description": "Información de las personas"
     },
     {
       "name": "Reservas",
       "description": "Gestión de reservas de canchas"
     },
     {
-      "name": "Canchas",
-      "description": "Administración de canchas"
+      "name": "Desafíos",
+      "description": "Desafíos competitivos entre jugadores"
     },
     {
       "name": "Clubes",
       "description": "Administración de clubes"
     },
     {
-      "name": "Deportes",
-      "description": "Gestión de deportes"
+      "name": "Canchas",
+      "description": "Administración de canchas"
     },
     {
-      "name": "Deudas",
-      "description": "Administración de deudas"
+      "name": "Deportes",
+      "description": "Gestión de deportes"
     },
     {
       "name": "Horarios",
       "description": "Disponibilidad de horarios"
     },
     {
+      "name": "Disponibilidades",
+      "description": "Horarios disponibles para jugar"
+    },
+    {
+      "name": "Deudas",
+      "description": "Administración de deudas de personas"
+    },
+    {
       "name": "Valoraciones",
-      "description": "Opiniones y calificaciones"
+      "description": "Opiniones y calificaciones de usuarios"
     },
     {
       "name": "Reportes",
-      "description": "Estadísticas y reportes operativos"
+      "description": "Exportaciones de datos en CSV"
     },
     {
-      "name": "Equipos",
-      "description": "Gestión de equipos deportivos"
-    },
-    {
-      "name": "Desafíos",
-      "description": "Desafíos competitivos entre equipos"
-    },
-    {
-      "name": "Ranking",
-      "description": "Ranking de jugadores"
+      "name": "Admin",
+      "description": "Panel de administración y estadísticas"
     }
   ],
   "paths": {
+    "/admin/resumen": {
+      "get": {
+        "summary": "Resumen general del sistema",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estadísticas del sistema"
+          }
+        }
+      }
+    },
+    "/admin/top-jugadores": {
+      "get": {
+        "summary": "Top 10 jugadores por ranking",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de jugadores con mayor ranking"
+          }
+        }
+      }
+    },
+    "/admin/canchas-mas-usadas": {
+      "get": {
+        "summary": "Canchas más usadas por cantidad de reservas",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Canchas con más uso"
+          }
+        }
+      }
+    },
+    "/admin/personas-con-deuda": {
+      "get": {
+        "summary": "Personas con deuda acumulada",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ranking de deudores"
+          }
+        }
+      }
+    },
+    "/auditoria": {
+      "get": {
+        "summary": "Auditoría del sistema",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "usuarioId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "accion",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "entidad",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fechaDesde",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "fechaHasta",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de eventos registrados"
+          }
+        }
+      }
+    },
     "/auth/login": {
       "post": {
         "summary": "Iniciar sesión",
@@ -88,10 +221,12 @@
                 "type": "object",
                 "properties": {
                   "email": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "usuario@cancha.com"
                   },
                   "password": {
-                    "type": "string"
+                    "type": "string",
+                    "example": "123456"
                   }
                 },
                 "required": [
@@ -104,7 +239,20 @@
         },
         "responses": {
           "200": {
-            "description": "Token generado"
+            "description": "Token generado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "example": "eyJhbGciOiJIUzI1NiIsInR..."
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
             "description": "Credenciales inválidas"
@@ -125,7 +273,7 @@
         }
       },
       "post": {
-        "summary": "Crear una cancha",
+        "summary": "Crear cancha",
         "tags": [
           "Canchas"
         ],
@@ -147,26 +295,25 @@
                   "ubicacion": {
                     "type": "string"
                   },
-                  "tipoSuperficie": {
-                    "type": "string"
-                  },
                   "precioPorHora": {
                     "type": "number"
                   },
-                  "deporteId": {
-                    "type": "string",
-                    "format": "uuid"
+                  "tipoSuperficie": {
+                    "type": "string"
                   },
                   "clubId": {
-                    "type": "string",
-                    "format": "uuid"
+                    "type": "string"
+                  },
+                  "deporteId": {
+                    "type": "string"
                   }
                 },
                 "required": [
                   "nombre",
                   "ubicacion",
-                  "tipoSuperficie",
-                  "precioPorHora"
+                  "precioPorHora",
+                  "clubId",
+                  "deporteId"
                 ]
               }
             }
@@ -175,134 +322,6 @@
         "responses": {
           "201": {
             "description": "Cancha creada"
-          },
-          "400": {
-            "description": "Datos inválidos"
-          },
-          "401": {
-            "description": "No autorizado"
-          }
-        }
-      }
-    },
-    "/canchas/{id}": {
-      "get": {
-        "summary": "Obtener cancha por ID",
-        "tags": [
-          "Canchas"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Cancha encontrada"
-          },
-          "404": {
-            "description": "No encontrada"
-          }
-        }
-      },
-      "patch": {
-        "summary": "Actualizar cancha",
-        "tags": [
-          "Canchas"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "nombre": {
-                    "type": "string"
-                  },
-                  "ubicacion": {
-                    "type": "string"
-                  },
-                  "tipoSuperficie": {
-                    "type": "string"
-                  },
-                  "precioPorHora": {
-                    "type": "number"
-                  },
-                  "deporteId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "clubId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "activa": {
-                    "type": "boolean"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Cancha actualizada"
-          },
-          "400": {
-            "description": "Datos inválidos"
-          },
-          "401": {
-            "description": "No autorizado"
-          }
-        }
-      },
-      "delete": {
-        "summary": "Eliminar cancha",
-        "tags": [
-          "Canchas"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Cancha eliminada"
           }
         }
       }
@@ -320,7 +339,7 @@
         }
       },
       "post": {
-        "summary": "Crear un club",
+        "summary": "Crear club",
         "tags": [
           "Clubes"
         ],
@@ -366,108 +385,6 @@
         }
       }
     },
-    "/clubes/{id}": {
-      "get": {
-        "summary": "Obtener un club por ID",
-        "tags": [
-          "Clubes"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Club encontrado"
-          }
-        }
-      },
-      "patch": {
-        "summary": "Actualizar un club",
-        "tags": [
-          "Clubes"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "nombre": {
-                    "type": "string"
-                  },
-                  "direccion": {
-                    "type": "string"
-                  },
-                  "telefono": {
-                    "type": "string"
-                  },
-                  "email": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Club actualizado"
-          }
-        }
-      },
-      "delete": {
-        "summary": "Eliminar un club",
-        "tags": [
-          "Clubes"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Club eliminado"
-          }
-        }
-      }
-    },
     "/deportes": {
       "get": {
         "summary": "Listar deportes",
@@ -481,7 +398,7 @@
         }
       },
       "post": {
-        "summary": "Crear un deporte",
+        "summary": "Crear deporte",
         "tags": [
           "Deportes"
         ],
@@ -515,48 +432,15 @@
         }
       }
     },
-    "/deportes/{id}": {
-      "get": {
-        "summary": "Obtener un deporte por ID",
+    "/desafios": {
+      "post": {
+        "summary": "Crear desafío",
         "tags": [
-          "Deportes"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Deporte encontrado"
-          }
-        }
-      },
-      "patch": {
-        "summary": "Actualizar un deporte",
-        "tags": [
-          "Deportes"
+          "Desafíos"
         ],
         "security": [
           {
             "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
           }
         ],
         "requestBody": {
@@ -566,49 +450,37 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "nombre": {
+                  "reservaId": {
+                    "type": "string"
+                  },
+                  "deporteId": {
+                    "type": "string"
+                  },
+                  "jugadoresRetador": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "nombreRetador": {
                     "type": "string"
                   }
-                }
+                },
+                "required": [
+                  "reservaId",
+                  "deporteId",
+                  "jugadoresRetador"
+                ]
               }
             }
           }
         },
         "responses": {
-          "200": {
-            "description": "Deporte actualizado"
+          "201": {
+            "description": "Desafío creado"
           }
         }
       },
-      "delete": {
-        "summary": "Eliminar un deporte",
-        "tags": [
-          "Deportes"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Deporte eliminado"
-          }
-        }
-      }
-    },
-    "/desafios": {
       "get": {
         "summary": "Listar desafíos",
         "tags": [
@@ -621,47 +493,24 @@
         ],
         "parameters": [
           {
+            "in": "query",
             "name": "estado",
-            "in": "query",
             "schema": {
-              "type": "string",
-              "enum": [
-                "pendiente",
-                "aceptado",
-                "finalizado"
-              ]
+              "type": "string"
             }
           },
           {
+            "in": "query",
             "name": "deporteId",
-            "in": "query",
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             }
           },
           {
-            "name": "equipoId",
             "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
             "name": "jugadorId",
-            "in": "query",
             "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "fecha",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "date"
+              "type": "string"
             }
           }
         ],
@@ -670,60 +519,11 @@
             "description": "Lista de desafíos"
           }
         }
-      },
-      "post": {
-        "summary": "Crear un desafío",
-        "tags": [
-          "Desafíos"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "equipoRetadorId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "deporteId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "fecha": {
-                    "type": "string",
-                    "format": "date"
-                  },
-                  "hora": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "equipoRetadorId",
-                  "deporteId",
-                  "fecha",
-                  "hora"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Desafío creado"
-          }
-        }
       }
     },
     "/desafios/{id}/aceptar": {
       "patch": {
-        "summary": "Aceptar un desafío",
+        "summary": "Aceptar desafío",
         "tags": [
           "Desafíos"
         ],
@@ -734,12 +534,11 @@
         ],
         "parameters": [
           {
-            "name": "id",
             "in": "path",
+            "name": "id",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             }
           }
         ],
@@ -750,13 +549,18 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "equipoRivalId": {
-                    "type": "string",
-                    "format": "uuid"
+                  "jugadoresRival": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "nombreRival": {
+                    "type": "string"
                   }
                 },
                 "required": [
-                  "equipoRivalId"
+                  "jugadoresRival"
                 ]
               }
             }
@@ -771,7 +575,7 @@
     },
     "/desafios/{id}/finalizar": {
       "patch": {
-        "summary": "Finalizar un desafío",
+        "summary": "Finalizar desafío",
         "tags": [
           "Desafíos"
         ],
@@ -782,12 +586,11 @@
         ],
         "parameters": [
           {
-            "name": "id",
             "in": "path",
+            "name": "id",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             }
           }
         ],
@@ -812,14 +615,58 @@
         },
         "responses": {
           "200": {
-            "description": "Desafío finalizado y rankings actualizados"
+            "description": "Desafío finalizado"
           }
         }
       }
     },
     "/deudas": {
+      "post": {
+        "summary": "Registrar deuda para persona",
+        "tags": [
+          "Deudas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "personaId": {
+                    "type": "string"
+                  },
+                  "monto": {
+                    "type": "number",
+                    "format": "decimal"
+                  },
+                  "fechaVencimiento": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                },
+                "required": [
+                  "personaId",
+                  "monto",
+                  "fechaVencimiento"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Deuda registrada"
+          }
+        }
+      },
       "get": {
-        "summary": "Listar deudas",
+        "summary": "Listar todas las deudas",
         "tags": [
           "Deudas"
         ],
@@ -833,11 +680,44 @@
             "description": "Lista de deudas"
           }
         }
-      },
-      "post": {
-        "summary": "Crear una deuda",
+      }
+    },
+    "/deudas/persona/{personaId}": {
+      "get": {
+        "summary": "Obtener deudas de una persona",
         "tags": [
           "Deudas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "personaId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deudas encontradas"
+          },
+          "404": {
+            "description": "Persona no encontrada o sin deudas"
+          }
+        }
+      }
+    },
+    "/disponibilidad-cancha": {
+      "post": {
+        "summary": "Crear disponibilidad horaria para una cancha",
+        "tags": [
+          "Canchas"
         ],
         "security": [
           {
@@ -851,21 +731,29 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "usuarioId": {
+                  "canchaId": {
                     "type": "string",
                     "format": "uuid"
                   },
-                  "monto": {
-                    "type": "number"
-                  },
-                  "fechaVencimiento": {
+                  "horarioId": {
                     "type": "string",
-                    "format": "date"
+                    "format": "uuid"
+                  },
+                  "diaSemana": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6,
+                    "description": "0 = domingo, 6 = sábado"
+                  },
+                  "disponible": {
+                    "type": "boolean",
+                    "default": true
                   }
                 },
                 "required": [
-                  "usuarioId",
-                  "monto"
+                  "canchaId",
+                  "horarioId",
+                  "diaSemana"
                 ]
               }
             }
@@ -873,16 +761,19 @@
         },
         "responses": {
           "201": {
-            "description": "Deuda creada"
+            "description": "Disponibilidad creada exitosamente"
+          },
+          "400": {
+            "description": "Error en los datos enviados"
           }
         }
       }
     },
-    "/deudas/{id}": {
+    "/disponibilidad-cancha/{canchaId}": {
       "get": {
-        "summary": "Obtener una deuda por ID",
+        "summary": "Listar disponibilidades por cancha",
         "tags": [
-          "Deudas"
+          "Canchas"
         ],
         "security": [
           {
@@ -891,7 +782,7 @@
         ],
         "parameters": [
           {
-            "name": "id",
+            "name": "canchaId",
             "in": "path",
             "required": true,
             "schema": {
@@ -902,168 +793,51 @@
         ],
         "responses": {
           "200": {
-            "description": "Deuda encontrada"
-          }
-        }
-      },
-      "patch": {
-        "summary": "Actualizar una deuda",
-        "tags": [
-          "Deudas"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "monto": {
-                    "type": "number"
-                  },
-                  "pagada": {
-                    "type": "boolean"
-                  },
-                  "fechaVencimiento": {
-                    "type": "string",
-                    "format": "date"
+            "description": "Lista de disponibilidades",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "diaSemana": {
+                        "type": "integer"
+                      },
+                      "disponible": {
+                        "type": "boolean"
+                      },
+                      "horario": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "horaInicio": {
+                            "type": "string"
+                          },
+                          "horaFin": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
             }
           }
-        },
-        "responses": {
-          "200": {
-            "description": "Deuda actualizada"
-          }
-        }
-      },
-      "delete": {
-        "summary": "Eliminar una deuda",
-        "tags": [
-          "Deudas"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Deuda eliminada"
-          }
         }
       }
     },
-    "/disponibilidades": {
-      "get": {
-        "summary": "Listar disponibilidades de jugadores",
-        "tags": [
-          "Disponibilidad de Jugadores"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Lista de disponibilidades"
-          }
-        }
-      },
-      "post": {
-        "summary": "Crear disponibilidad de jugador",
-        "tags": [
-          "Disponibilidad de Jugadores"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "fechaDesde": {
-                    "type": "string",
-                    "format": "date"
-                  },
-                  "fechaHasta": {
-                    "type": "string",
-                    "format": "date"
-                  },
-                  "horaDesde": {
-                    "type": "string",
-                    "example": "18:00"
-                  },
-                  "horaHasta": {
-                    "type": "string",
-                    "example": "20:00"
-                  },
-                  "clubesIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "format": "uuid"
-                    }
-                  }
-                },
-                "required": [
-                  "fechaDesde",
-                  "fechaHasta",
-                  "horaDesde",
-                  "horaHasta",
-                  "clubesIds"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Disponibilidad creada"
-          }
-        }
-      }
-    },
-    "/disponibilidades/{id}": {
+    "/disponibilidad-cancha/{id}": {
       "delete": {
-        "summary": "Eliminar disponibilidad de jugador",
+        "summary": "Eliminar disponibilidad horaria",
         "tags": [
-          "Disponibilidad de Jugadores"
+          "Canchas"
         ],
         "security": [
           {
@@ -1084,31 +858,18 @@
         "responses": {
           "200": {
             "description": "Disponibilidad eliminada"
+          },
+          "400": {
+            "description": "Error al eliminar disponibilidad"
           }
         }
       }
     },
-    "/equipos": {
-      "get": {
-        "summary": "Listar todos los equipos",
-        "tags": [
-          "Equipos"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Lista de equipos"
-          }
-        }
-      },
+    "/disponibilidades": {
       "post": {
-        "summary": "Crear un equipo",
+        "summary": "Registrar disponibilidad de una persona",
         "tags": [
-          "Equipos"
+          "Disponibilidades"
         ],
         "security": [
           {
@@ -1122,25 +883,41 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "nombre": {
+                  "personaId": {
                     "type": "string"
                   },
                   "deporteId": {
-                    "type": "string",
-                    "format": "uuid"
+                    "type": "string"
                   },
-                  "jugadoresIds": {
+                  "clubIds": {
                     "type": "array",
                     "items": {
-                      "type": "string",
-                      "format": "uuid"
+                      "type": "string"
                     }
+                  },
+                  "fechaDesde": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "fechaHasta": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "horaDesde": {
+                    "type": "string"
+                  },
+                  "horaHasta": {
+                    "type": "string"
                   }
                 },
                 "required": [
-                  "nombre",
+                  "personaId",
                   "deporteId",
-                  "jugadoresIds"
+                  "clubIds",
+                  "fechaDesde",
+                  "fechaHasta",
+                  "horaDesde",
+                  "horaHasta"
                 ]
               }
             }
@@ -1148,123 +925,30 @@
         },
         "responses": {
           "201": {
-            "description": "Equipo creado"
+            "description": "Disponibilidad registrada"
           }
         }
-      }
-    },
-    "/equipos/{id}": {
+      },
       "get": {
-        "summary": "Obtener un equipo por ID",
+        "summary": "Listar todas las disponibilidades",
         "tags": [
-          "Equipos"
+          "Disponibilidades"
         ],
         "security": [
           {
             "bearerAuth": []
           }
         ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
         "responses": {
           "200": {
-            "description": "Equipo encontrado"
-          }
-        }
-      },
-      "put": {
-        "summary": "Actualizar un equipo",
-        "tags": [
-          "Equipos"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "nombre": {
-                    "type": "string"
-                  },
-                  "jugadoresIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string",
-                      "format": "uuid"
-                    }
-                  }
-                },
-                "required": [
-                  "nombre",
-                  "jugadoresIds"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Equipo actualizado"
-          }
-        }
-      },
-      "delete": {
-        "summary": "Eliminar un equipo",
-        "tags": [
-          "Equipos"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Equipo eliminado"
+            "description": "Lista de disponibilidades"
           }
         }
       }
     },
     "/horarios": {
       "get": {
-        "summary": "Listar horarios",
+        "summary": "Listar horarios disponibles",
         "tags": [
           "Horarios"
         ],
@@ -1275,7 +959,7 @@
         }
       },
       "post": {
-        "summary": "Crear un horario",
+        "summary": "Crear horario",
         "tags": [
           "Horarios"
         ],
@@ -1291,13 +975,6 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "canchaId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "dia": {
-                    "type": "string"
-                  },
                   "horaInicio": {
                     "type": "string"
                   },
@@ -1306,8 +983,6 @@
                   }
                 },
                 "required": [
-                  "canchaId",
-                  "dia",
                   "horaInicio",
                   "horaFin"
                 ]
@@ -1322,48 +997,71 @@
         }
       }
     },
-    "/horarios/{id}": {
+    "/perfil-competitivo": {
       "get": {
-        "summary": "Obtener un horario por ID",
+        "summary": "Obtener mi perfil competitivo",
         "tags": [
-          "Horarios"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Horario encontrado"
-          }
-        }
-      },
-      "patch": {
-        "summary": "Actualizar un horario",
-        "tags": [
-          "Horarios"
+          "Ranking"
         ],
         "security": [
           {
             "bearerAuth": []
           }
         ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
+        "responses": {
+          "200": {
+            "description": "Perfil competitivo del usuario logueado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "activo": {
+                      "type": "boolean"
+                    },
+                    "ranking": {
+                      "type": "number"
+                    },
+                    "usuario": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "persona": {
+                          "type": "object",
+                          "properties": {
+                            "nombre": {
+                              "type": "string"
+                            },
+                            "apellido": {
+                              "type": "string"
+                            },
+                            "email": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Actualizar mi perfil competitivo",
+        "tags": [
+          "Ranking"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
           }
         ],
         "requestBody": {
@@ -1373,17 +1071,11 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "dia": {
-                    "type": "string"
-                  },
-                  "horaInicio": {
-                    "type": "string"
-                  },
-                  "horaFin": {
-                    "type": "string"
-                  },
-                  "disponible": {
+                  "activo": {
                     "type": "boolean"
+                  },
+                  "ranking": {
+                    "type": "number"
                   }
                 }
               }
@@ -1392,14 +1084,37 @@
         },
         "responses": {
           "200": {
-            "description": "Horario actualizado"
+            "description": "Perfil actualizado"
+          },
+          "400": {
+            "description": "Error de validación"
           }
         }
-      },
-      "delete": {
-        "summary": "Eliminar un horario",
+      }
+    },
+    "/personas": {
+      "get": {
+        "summary": "Listar todas las personas",
         "tags": [
-          "Horarios"
+          "Personas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de personas del sistema"
+          }
+        }
+      }
+    },
+    "/personas/{id}": {
+      "get": {
+        "summary": "Obtener persona por ID",
+        "tags": [
+          "Personas"
         ],
         "security": [
           {
@@ -1412,21 +1127,23 @@
             "in": "path",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Horario eliminado"
+            "description": "Persona encontrada"
+          },
+          "404": {
+            "description": "Persona no encontrada"
           }
         }
       }
     },
-    "/competicion/jugadores-ranking": {
+    "/ranking": {
       "get": {
-        "summary": "Ranking de jugadores",
+        "summary": "Ranking general de jugadores",
         "tags": [
           "Ranking"
         ],
@@ -1435,125 +1152,9 @@
             "bearerAuth": []
           }
         ],
-        "parameters": [
-          {
-            "name": "deporteId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
         "responses": {
           "200": {
-            "description": "Lista de jugadores ordenados por ranking"
-          }
-        }
-      }
-    },
-    "/competicion/equipos-ranking": {
-      "get": {
-        "summary": "Ranking de equipos",
-        "tags": [
-          "Ranking"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "deporteId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Lista de equipos ordenados por ranking"
-          }
-        }
-      }
-    },
-    "/api/reportes/reservas": {
-      "get": {
-        "tags": [
-          "Reportes"
-        ],
-        "summary": "Obtener reservas por rango de fechas",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "desde",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            },
-            "required": true,
-            "description": "Fecha de inicio (YYYY-MM-DD)"
-          },
-          {
-            "in": "query",
-            "name": "hasta",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            },
-            "required": true,
-            "description": "Fecha de fin (YYYY-MM-DD)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Listado de reservas",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Reserva"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/reportes/ingresos": {
-      "get": {
-        "tags": [
-          "Reportes"
-        ],
-        "summary": "Obtener ingresos totales por club",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "desde",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            },
-            "required": true
-          },
-          {
-            "in": "query",
-            "name": "hasta",
-            "schema": {
-              "type": "string",
-              "format": "date"
-            },
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Ingresos por club",
+            "description": "Lista ordenada de jugadores por ranking",
             "content": {
               "application/json": {
                 "schema": {
@@ -1561,11 +1162,20 @@
                   "items": {
                     "type": "object",
                     "properties": {
-                      "club": {
+                      "usuarioId": {
                         "type": "string"
                       },
-                      "ingresos": {
+                      "nombre": {
+                        "type": "string"
+                      },
+                      "apellido": {
+                        "type": "string"
+                      },
+                      "ranking": {
                         "type": "number"
+                      },
+                      "activo": {
+                        "type": "boolean"
                       }
                     }
                   }
@@ -1576,28 +1186,49 @@
         }
       }
     },
-    "/api/reportes/canchas-top": {
+    "/ranking/usuario/{usuarioId}": {
       "get": {
+        "summary": "Ver perfil competitivo de un usuario",
         "tags": [
-          "Reportes"
+          "Ranking"
         ],
-        "summary": "Obtener canchas más reservadas",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "usuarioId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Top canchas",
+            "description": "Perfil competitivo del usuario",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "cancha": {
-                        "type": "string"
-                      },
-                      "cantidad": {
-                        "type": "integer"
-                      }
+                  "type": "object",
+                  "properties": {
+                    "usuarioId": {
+                      "type": "string"
+                    },
+                    "nombre": {
+                      "type": "string"
+                    },
+                    "apellido": {
+                      "type": "string"
+                    },
+                    "ranking": {
+                      "type": "number"
+                    },
+                    "activo": {
+                      "type": "boolean"
                     }
                   }
                 }
@@ -1607,71 +1238,120 @@
         }
       }
     },
-    "/api/reportes/usuarios-top": {
+    "/reportes/reservas": {
       "get": {
+        "summary": "Exportar reservas como CSV",
         "tags": [
           "Reportes"
         ],
-        "summary": "Obtener usuarios con más reservas",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Top usuarios",
+            "description": "Archivo CSV de reservas",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "usuario": {
-                        "type": "string"
-                      },
-                      "cantidad": {
-                        "type": "integer"
-                      }
-                    }
-                  }
-                }
-              }
+              "text/csv": {}
             }
           }
         }
       }
     },
-    "/api/reportes/ocupacion-horarios": {
+    "/reportes/deudas": {
       "get": {
+        "summary": "Exportar deudas impagas como CSV",
         "tags": [
           "Reportes"
         ],
-        "summary": "Obtener ocupación por horario",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Ocupación por hora",
+            "description": "Archivo CSV de deudas",
             "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "hora": {
-                        "type": "string"
-                      },
-                      "cantidad": {
-                        "type": "integer"
-                      }
-                    }
-                  }
-                }
-              }
+              "text/csv": {}
+            }
+          }
+        }
+      }
+    },
+    "/reportes/ranking-jugadores": {
+      "get": {
+        "summary": "Exportar ranking de jugadores como CSV",
+        "tags": [
+          "Reportes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Archivo CSV con el ranking",
+            "content": {
+              "text/csv": {}
             }
           }
         }
       }
     },
     "/reservas": {
+      "post": {
+        "summary": "Crear reserva",
+        "tags": [
+          "Reservas"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "personaId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "disponibilidadId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "fechaHora": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "personaId",
+                  "disponibilidadId",
+                  "fechaHora"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reserva creada"
+          },
+          "400": {
+            "description": "Error de validación o cancha ocupada"
+          }
+        }
+      },
       "get": {
-        "summary": "Listar reservas",
+        "summary": "Listar todas las reservas",
         "tags": [
           "Reservas"
         ],
@@ -1685,60 +1365,11 @@
             "description": "Lista de reservas"
           }
         }
-      },
-      "post": {
-        "summary": "Crear una reserva",
-        "tags": [
-          "Reservas"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "usuarioId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "canchaId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "fecha": {
-                    "type": "string",
-                    "format": "date"
-                  },
-                  "hora": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "usuarioId",
-                  "canchaId",
-                  "fecha",
-                  "hora"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Reserva creada"
-          }
-        }
       }
     },
     "/reservas/{id}": {
       "get": {
-        "summary": "Obtener una reserva por ID",
+        "summary": "Obtener reserva por ID",
         "tags": [
           "Reservas"
         ],
@@ -1749,8 +1380,8 @@
         ],
         "parameters": [
           {
-            "name": "id",
             "in": "path",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string",
@@ -1761,11 +1392,14 @@
         "responses": {
           "200": {
             "description": "Reserva encontrada"
+          },
+          "404": {
+            "description": "Reserva no encontrada"
           }
         }
       },
       "delete": {
-        "summary": "Cancelar una reserva",
+        "summary": "Cancelar reserva",
         "tags": [
           "Reservas"
         ],
@@ -1776,8 +1410,8 @@
         ],
         "parameters": [
           {
-            "name": "id",
             "in": "path",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string",
@@ -1788,13 +1422,16 @@
         "responses": {
           "200": {
             "description": "Reserva cancelada"
+          },
+          "404": {
+            "description": "No encontrada"
           }
         }
       }
     },
     "/reservas/{id}/confirmar": {
       "patch": {
-        "summary": "Confirmar una reserva",
+        "summary": "Confirmar reserva",
         "tags": [
           "Reservas"
         ],
@@ -1805,8 +1442,8 @@
         ],
         "parameters": [
           {
-            "name": "id",
             "in": "path",
+            "name": "id",
             "required": true,
             "schema": {
               "type": "string",
@@ -1817,13 +1454,16 @@
         "responses": {
           "200": {
             "description": "Reserva confirmada"
+          },
+          "404": {
+            "description": "No encontrada"
           }
         }
       }
     },
     "/usuarios/registro": {
       "post": {
-        "summary": "Registrar un nuevo usuario",
+        "summary": "Registro de nuevo usuario",
         "tags": [
           "Usuarios"
         ],
@@ -1837,6 +1477,9 @@
                   "nombre": {
                     "type": "string"
                   },
+                  "apellido": {
+                    "type": "string"
+                  },
                   "email": {
                     "type": "string"
                   },
@@ -1846,6 +1489,7 @@
                 },
                 "required": [
                   "nombre",
+                  "apellido",
                   "email",
                   "password"
                 ]
@@ -1855,17 +1499,73 @@
         },
         "responses": {
           "201": {
-            "description": "Usuario creado correctamente"
+            "description": "Usuario creado exitosamente"
           },
           "400": {
-            "description": "Datos inválidos"
+            "description": "Error de validación o email duplicado"
+          }
+        }
+      }
+    },
+    "/usuarios/admin": {
+      "post": {
+        "summary": "Registrar nuevo administrador",
+        "tags": [
+          "Usuarios"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "nombre": {
+                    "type": "string"
+                  },
+                  "apellido": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 6
+                  }
+                },
+                "required": [
+                  "nombre",
+                  "apellido",
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Administrador creado"
+          },
+          "400": {
+            "description": "Error en los datos enviados"
+          },
+          "403": {
+            "description": "No autorizado"
           }
         }
       }
     },
     "/usuarios": {
       "get": {
-        "summary": "Listar todos los usuarios",
+        "summary": "Listar usuarios",
         "tags": [
           "Usuarios"
         ],
@@ -1878,15 +1578,15 @@
           "200": {
             "description": "Lista de usuarios"
           },
-          "401": {
-            "description": "No autorizado"
+          "500": {
+            "description": "Error interno"
           }
         }
       }
     },
     "/usuarios/{id}": {
       "patch": {
-        "summary": "Actualizar datos de un usuario",
+        "summary": "Actualizar usuario",
         "tags": [
           "Usuarios"
         ],
@@ -1897,13 +1597,12 @@
         ],
         "parameters": [
           {
-            "name": "id",
             "in": "path",
-            "required": true,
+            "name": "id",
             "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
+              "type": "string"
+            },
+            "required": true
           }
         ],
         "requestBody": {
@@ -1929,28 +1628,17 @@
             "description": "Usuario actualizado"
           },
           "400": {
-            "description": "Datos inválidos"
+            "description": "Error de validación"
           },
-          "401": {
-            "description": "No autorizado"
+          "403": {
+            "description": "Acceso denegado"
           }
         }
       }
     },
     "/valoraciones": {
-      "get": {
-        "summary": "Listar valoraciones",
-        "tags": [
-          "Valoraciones"
-        ],
-        "responses": {
-          "200": {
-            "description": "Lista de valoraciones"
-          }
-        }
-      },
       "post": {
-        "summary": "Crear una valoración",
+        "summary": "Crear valoración",
         "tags": [
           "Valoraciones"
         ],
@@ -1966,13 +1654,16 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "usuarioId": {
+                  "tipo_objetivo": {
                     "type": "string",
-                    "format": "uuid"
+                    "enum": [
+                      "club",
+                      "cancha",
+                      "usuario"
+                    ]
                   },
-                  "canchaId": {
-                    "type": "string",
-                    "format": "uuid"
+                  "id_objetivo": {
+                    "type": "string"
                   },
                   "puntaje": {
                     "type": "integer",
@@ -1984,10 +1675,9 @@
                   }
                 },
                 "required": [
-                  "usuarioId",
-                  "canchaId",
-                  "puntaje",
-                  "comentario"
+                  "tipo_objetivo",
+                  "id_objetivo",
+                  "puntaje"
                 ]
               }
             }
@@ -1998,33 +1688,46 @@
             "description": "Valoración creada"
           }
         }
+      },
+      "get": {
+        "summary": "Listar todas las valoraciones",
+        "tags": [
+          "Valoraciones"
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de valoraciones"
+          }
+        }
       }
     },
     "/valoraciones/{id}": {
       "get": {
-        "summary": "Obtener una valoración por ID",
+        "summary": "Obtener valoración por ID",
         "tags": [
           "Valoraciones"
         ],
         "parameters": [
           {
-            "name": "id",
             "in": "path",
+            "name": "id",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
             "description": "Valoración encontrada"
+          },
+          "404": {
+            "description": "No encontrada"
           }
         }
       },
       "delete": {
-        "summary": "Eliminar una valoración",
+        "summary": "Eliminar valoración",
         "tags": [
           "Valoraciones"
         ],
@@ -2035,12 +1738,11 @@
         ],
         "parameters": [
           {
-            "name": "id",
             "in": "path",
+            "name": "id",
             "required": true,
             "schema": {
-              "type": "string",
-              "format": "uuid"
+              "type": "string"
             }
           }
         ],

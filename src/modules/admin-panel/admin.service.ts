@@ -4,7 +4,6 @@ import { Reserva } from '../../entities/Reserva.entity';
 import { Cancha } from '../../entities/Cancha.entity';
 import { Deuda } from '../../entities/Deuda.entity';
 import { PerfilCompetitivo } from '../../entities/PerfilCompetitivo.entity';
-import { Equipo } from '../../entities/Equipo.entity';
 import { Persona } from '../../entities/Persona.entity';
 
 const usuarioRepo = AppDataSource.getRepository(Usuario);
@@ -12,7 +11,6 @@ const reservaRepo = AppDataSource.getRepository(Reserva);
 const canchaRepo = AppDataSource.getRepository(Cancha);
 const deudaRepo = AppDataSource.getRepository(Deuda);
 const perfilRepo = AppDataSource.getRepository(PerfilCompetitivo);
-const equipoRepo = AppDataSource.getRepository(Equipo);
 const personaRepo = AppDataSource.getRepository(Persona);
 
 export class AdminService {
@@ -49,27 +47,11 @@ export class AdminService {
     }));
   }
 
-  async obtenerTopEquipos() {
-    const equipos = await equipoRepo.find({
-      order: { ranking: 'DESC' },
-      take: 10,
-      relations: ['deporte']
-    });
-
-    return equipos.map(e => ({
-      equipoId: e.id,
-      nombre: e.nombre,
-      ranking: e.ranking,
-      deporte: e.deporte.nombre,
-      partidosJugados: e.partidosJugados,
-      partidosGanados: e.partidosGanados
-    }));
-  }
-
   async obtenerCanchasMasUsadas() {
     const result = await reservaRepo
       .createQueryBuilder('reserva')
-      .leftJoin('reserva.cancha', 'cancha')
+      .leftJoin('reserva.disponibilidad', 'disponibilidad')
+      .leftJoin('disponibilidad.cancha', 'cancha')
       .select('cancha.id', 'canchaId')
       .addSelect('cancha.nombre', 'nombre')
       .addSelect('COUNT(reserva.id)', 'totalReservas')

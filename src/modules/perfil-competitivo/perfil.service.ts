@@ -16,7 +16,7 @@ export class PerfilService {
     return perfil;
   }
 
-  async actualizar(usuarioId: string, data: { modoCompetitivo?: boolean; ranking?: number }) {
+  async actualizar(usuarioId: string, data: { activo?: boolean; ranking?: number }) {
     let perfil = await perfilRepo.findOne({ where: { usuario: { id: usuarioId } } });
 
     if (!perfil) {
@@ -25,14 +25,14 @@ export class PerfilService {
 
       perfil = perfilRepo.create({
         usuario,
-        modoCompetitivo: data.modoCompetitivo ?? false,
+        activo: data.activo ?? false,
         ranking: data.ranking ?? 1000
       });
 
       return await perfilRepo.save(perfil);
     }
 
-    if (data.modoCompetitivo !== undefined) perfil.modoCompetitivo = data.modoCompetitivo;
+    if (data.activo !== undefined) perfil.activo = data.activo;
     if (data.ranking !== undefined) perfil.ranking = data.ranking;
 
     return await perfilRepo.save(perfil);

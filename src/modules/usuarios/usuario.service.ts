@@ -41,7 +41,7 @@ export class UsuarioService {
 
     const perfil = perfilRepo.create({
       usuario,
-      modoCompetitivo: false,
+      activo: false,
       ranking: 1000
     });
 

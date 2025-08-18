@@ -13,7 +13,7 @@ export class PerfilCompetitivo {
   id!: string;
 
   @Column({ default: false })
-  modoCompetitivo!: boolean;
+  activo!: boolean;
 
   @Column({ default: 1000 })
   ranking!: number;

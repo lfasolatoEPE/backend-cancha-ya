@@ -3,13 +3,15 @@ import {
   PrimaryGeneratedColumn,
   Column,
   JoinColumn,
+  CreateDateColumn,
   ManyToOne,
   OneToOne,
-  CreateDateColumn
+  ManyToMany,
+  JoinTable
 } from 'typeorm';
-import { Equipo } from './Equipo.entity';
 import { Deporte } from './Deporte.entity';
 import { Reserva } from './Reserva.entity';
+import { Persona } from './Persona.entity';
 
 export enum EstadoDesafio {
   Pendiente = 'pendiente',
@@ -21,20 +23,28 @@ export enum EstadoDesafio {
 export class Desafio {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
-  
+
   @OneToOne(() => Reserva, { eager: true })
   @JoinColumn()
   reserva!: Reserva;
-  
-  @ManyToOne(() => Equipo)
-  equipoRetador!: Equipo;
-
-  @ManyToOne(() => Equipo, { nullable: true })
-  equipoRival!: Equipo | null;
 
   @ManyToOne(() => Deporte)
   deporte!: Deporte;
-  
+
+  @ManyToMany(() => Persona, { eager: true })
+  @JoinTable()
+  jugadoresRetador!: Persona[];
+
+  @ManyToMany(() => Persona, { eager: true })
+  @JoinTable()
+  jugadoresRival!: Persona[];
+
+  @Column({ nullable: true })
+  nombreRetador?: string;
+
+  @Column({ nullable: true })
+  nombreRival?: string;
+
   @Column({
     type: 'enum',
     enum: EstadoDesafio,
