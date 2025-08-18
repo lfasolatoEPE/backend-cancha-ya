@@ -7,7 +7,9 @@
     "generate-swagger": "ts-node scripts/generateSwagger.ts",
     "build": "tsc",
     "start": "npm run generate-swagger && node dist/index.js",
-    "dev": "ts-node-dev src/index.ts"
+    "dev": "ts-node-dev src/index.ts",
+    "seed": "ts-node src/scripts/seed.ts",
+    "seed:reset": "npx ts-node src/scripts/reset-seed.ts"
   },
   "keywords": [],
   "author": "Lucas Fasolato",
