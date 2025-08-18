@@ -28,10 +28,19 @@ export class DesafioController {
     }
   };
 
-  finalizar = async (req: Request, res: Response) => {
+  cargarResultado = async (req: Request, res: Response) => {
     try {
       const { resultado } = req.body as FinalizarDesafioDto;
-      const desafio = await this.service.finalizarDesafio(req.params.id, resultado);
+      const desafio = await this.service.cargarResultado(req.params.id, resultado);
+      res.json(desafio);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  };
+
+  finalizar = async (req: Request, res: Response) => {
+    try {
+      const desafio = await this.service.finalizarDesafio(req.params.id);
       res.json(desafio);
     } catch (error: any) {
       res.status(400).json({ error: error.message });

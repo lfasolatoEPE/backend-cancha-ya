@@ -28,9 +28,15 @@ router.patch(
 );
 
 router.patch(
-  '/:id/finalizar',
+  '/:id/cargar-resultado',
   authMiddleware,
   validateDto(FinalizarDesafioDto),
+  controller.cargarResultado
+);
+
+router.patch(
+  '/:id/finalizar',
+  authMiddleware,
   controller.finalizar
 );
 

@@ -91,7 +91,36 @@ export class DesafioService {
     return actualizado;
   }
 
-  async finalizarDesafio(id: string, resultado: string) {
+  async cargarResultado(desafioId: string, resultado: string) {
+    const desafio = await desafioRepo.findOne({
+      where: { id: desafioId },
+      relations: ['jugadoresRetador', 'jugadoresRival']
+    });
+
+    if (!desafio) throw new Error('Desafío no encontrado');
+    if (desafio.estado !== EstadoDesafio.Aceptado)
+      throw new Error('Solo se puede cargar el resultado de desafíos aceptados');
+
+    const [golesRetador, golesRival] = resultado.split('-').map(n => parseInt(n.trim(), 10));
+    if (isNaN(golesRetador) || isNaN(golesRival))
+      throw new Error('Formato de resultado inválido. Usa "3-2"');
+
+    desafio.resultado = resultado;
+    await desafioRepo.save(desafio);
+
+    await auditoriaRepo.save(
+      auditoriaRepo.create({
+        accion: 'cargar_resultado',
+        descripcion: `Resultado cargado: ${resultado}`,
+        entidad: 'desafio',
+        entidadId: desafio.id
+      })
+    );
+
+    return desafio;
+  }
+
+  async finalizarDesafio(id: string) {
     const desafio = await desafioRepo.findOne({
       where: { id },
       relations: [
@@ -106,18 +135,12 @@ export class DesafioService {
     if (!desafio) throw new Error('Desafío no encontrado');
     if (desafio.estado !== EstadoDesafio.Aceptado)
       throw new Error('Solo se pueden finalizar desafíos aceptados');
-    if (!desafio.jugadoresRival || desafio.jugadoresRival.length === 0)
-      throw new Error('El desafío no tiene jugadores rivales');
+    if (!desafio.resultado)
+      throw new Error('Debe cargarse un resultado antes de finalizar el desafío');
 
-    const [golesRetador, golesRival] = resultado
+    const [golesRetador, golesRival] = desafio.resultado
       .split('-')
       .map(n => parseInt(n.trim(), 10));
-
-    if (isNaN(golesRetador) || isNaN(golesRival))
-      throw new Error('Formato de resultado inválido. Usa "3-2"');
-
-    desafio.resultado = resultado;
-    desafio.estado = EstadoDesafio.Finalizado;
 
     if (golesRetador !== golesRival) {
       const ganadores = golesRetador > golesRival ? desafio.jugadoresRetador : desafio.jugadoresRival!;
@@ -125,12 +148,13 @@ export class DesafioService {
       await this.actualizarRankingEloPorJugadores(ganadores, perdedores);
     }
 
+    desafio.estado = EstadoDesafio.Finalizado;
     const finalizado = await desafioRepo.save(desafio);
 
     await auditoriaRepo.save(
       auditoriaRepo.create({
         accion: 'finalizar_desafio',
-        descripcion: `Desafío finalizado en cancha ${desafio.reserva.disponibilidad.cancha.nombre} con resultado ${resultado}`,
+        descripcion: `Desafío finalizado en cancha ${desafio.reserva.disponibilidad.cancha.nombre} con resultado ${desafio.resultado}`,
         entidad: 'desafio',
         entidadId: desafio.id
       })
