@@ -114,43 +114,43 @@ import { Valoracion } from '../entities/Valoracion.entity';
   ];
   const estados = [EstadoReserva.Pendiente, EstadoReserva.Confirmada, EstadoReserva.Cancelada];
 
-  if (usuario1 && usuario2 && usuario3) {
-    for (let i = 0; i < fechas.length; i++) {
-      const fecha = fechas[i];
-      const horario = horarios[i % horarios.length];
-      const disponibilidad = await disponibilidadRepo.findOne({ where: { cancha: { id: cancha.id }, horario: { id: horario.id }, diaSemana: fecha.getDay() }, relations: ['cancha', 'horario'] });
+  // if (usuario1 && usuario2 && usuario3) {
+  //   for (let i = 0; i < fechas.length; i++) {
+  //     const fecha = fechas[i];
+  //     const horario = horarios[i % horarios.length];
+  //     const disponibilidad = await disponibilidadRepo.findOne({ where: { cancha: { id: cancha.id }, horario: { id: horario.id }, diaSemana: fecha.getDay() }, relations: ['cancha', 'horario'] });
 
-      if (disponibilidad) {
-        const reserva = await reservaRepo.save(reservaRepo.create({ persona: usuario1.persona, fechaHora: fecha, creadaEl: new Date(), disponibilidad, estado: estados[i] }));
+  //     if (disponibilidad) {
+  //       const reserva = await reservaRepo.save(reservaRepo.create({ persona: usuario1.persona, fechaHora: fecha, creadaEl: new Date(), disponibilidad, estado: estados[i] }));
 
-        const desafio = await desafioRepo.save(desafioRepo.create({
-          reserva,
-          estado: i === 0 ? EstadoDesafio.Pendiente : EstadoDesafio.Finalizado,
-          deporte: cancha.deporte,
-          jugadoresRetador: [usuario1.persona],
-          jugadoresRival: [usuario2.persona]
-        }));
+  //       const desafio = await desafioRepo.save(desafioRepo.create({
+  //         reserva,
+  //         estado: i === 0 ? EstadoDesafio.Pendiente : EstadoDesafio.Finalizado,
+  //         deporte: cancha.deporte,
+  //         jugadoresRetador: [usuario1.persona],
+  //         jugadoresRival: [usuario2.persona]
+  //       }));
 
-        await deudaRepo.save(deudaRepo.create({ persona: usuario1.persona, monto: 2500 + i * 100, pagada: i % 2 === 0 }));
+  //       await deudaRepo.save(deudaRepo.create({ persona: usuario1.persona, monto: 2500 + i * 100, pagada: i % 2 === 0 }));
 
-        await valoracionRepo.save(valoracionRepo.create({
-          persona: usuario3.persona,
-          id_objetivo: usuario1.persona.id,
-          tipo_objetivo: 'usuario',
-          puntaje: 5 - i,
-          comentario: 'Buen jugador'
-        }));
+  //       await valoracionRepo.save(valoracionRepo.create({
+  //         persona: usuario3.persona,
+  //         id_objetivo: usuario1.persona.id,
+  //         tipo_objetivo: 'usuario',
+  //         puntaje: 5 - i,
+  //         comentario: 'Buen jugador'
+  //       }));
 
-        await valoracionRepo.save(valoracionRepo.create({
-          persona: usuario1.persona,
-          id_objetivo: cancha.id,
-          tipo_objetivo: 'cancha',
-          puntaje: 4,
-          comentario: 'Cancha en condiciones'
-        }));
-      }
-    }
-  }
+  //       await valoracionRepo.save(valoracionRepo.create({
+  //         persona: usuario1.persona,
+  //         id_objetivo: cancha.id,
+  //         tipo_objetivo: 'cancha',
+  //         puntaje: 4,
+  //         comentario: 'Cancha en condiciones'
+  //       }));
+  //     }
+  //   }
+  // }
 
   console.log('✅ Seed completo');
   process.exit(0);

@@ -1,60 +1,87 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  JoinColumn,
-  CreateDateColumn,
-  ManyToOne,
-  OneToOne,
-  ManyToMany,
-  JoinTable
+Entity,
+PrimaryGeneratedColumn,
+Column,
+CreateDateColumn,
+ManyToOne,
+OneToOne,
+ManyToMany,
+JoinColumn,
+JoinTable,
 } from 'typeorm';
 import { Deporte } from './Deporte.entity';
 import { Reserva } from './Reserva.entity';
 import { Persona } from './Persona.entity';
 
+
 export enum EstadoDesafio {
-  Pendiente = 'pendiente',
-  Aceptado = 'aceptado',
-  Finalizado = 'finalizado'
+Pendiente = 'pendiente',
+Aceptado = 'aceptado',
+Cancelado = 'cancelado',
+Finalizado = 'finalizado',
+}
+
+export enum LadoDesafio {
+Creador = 'creador',
+Desafiado = 'desafiado',
 }
 
 @Entity()
 export class Desafio {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
+@PrimaryGeneratedColumn('uuid')
+id!: string;
 
-  @OneToOne(() => Reserva, { eager: true })
-  @JoinColumn()
-  reserva!: Reserva;
+// Reserva que origina el desafío (única)
+@OneToOne(() => Reserva, { eager: true })
+@JoinColumn()
+reserva!: Reserva;
 
-  @ManyToOne(() => Deporte)
-  deporte!: Deporte;
+@ManyToOne(() => Deporte, { eager: true })
+deporte!: Deporte;
 
-  @ManyToMany(() => Persona, { eager: true })
-  @JoinTable()
-  jugadoresRetador!: Persona[];
+// Persona que inicia el desafío
+@ManyToOne(() => Persona, { eager: true })
+creador!: Persona;
 
-  @ManyToMany(() => Persona, { eager: true })
-  @JoinTable()
-  jugadoresRival!: Persona[];
+// Lado A (creador) – jugadores confirmados
+@ManyToMany(() => Persona, { eager: true })
+@JoinTable({ name: 'desafio_jugadores_creador' })
+jugadoresCreador!: Persona[];
 
-  @Column({ nullable: true })
-  nombreRetador?: string;
+// Invitados del lado desafiado (pendientes de aceptar)
+@ManyToMany(() => Persona, { eager: true })
+@JoinTable({ name: 'desafio_invitados_desafiados' })
+invitadosDesafiados!: Persona[];
 
-  @Column({ nullable: true })
-  nombreRival?: string;
+// Lado B (desafiados) – jugadores que aceptaron
+@ManyToMany(() => Persona, { eager: true })
+@JoinTable({ name: 'desafio_jugadores_desafiados' })
+jugadoresDesafiados!: Persona[];
 
-  @Column({
-    type: 'enum',
-    enum: EstadoDesafio,
-    default: EstadoDesafio.Pendiente
-  })
-  estado!: EstadoDesafio;
+@Column({
+type: 'enum',
+enum: EstadoDesafio,
+default: EstadoDesafio.Pendiente,
+})
+estado!: EstadoDesafio;
 
-  @Column({ type: 'varchar', nullable: true })
-  resultado!: string | null;
+// Resultado opcional
+@Column({ type: 'enum', enum: LadoDesafio, nullable: true })
+ganador?: LadoDesafio | null;
 
-  @CreateDateColumn()
-  creadoEl!: Date;
+@Column({ type: 'int', nullable: true })
+golesCreador?: number | null;
+
+@Column({ type: 'int', nullable: true })
+golesDesafiado?: number | null;
+
+// Valoraciones opcionales
+@Column({ type: 'int', nullable: true })
+valoracionCreador?: number | null;
+
+@Column({ type: 'int', nullable: true })
+valoracionDesafiado?: number | null;
+
+@CreateDateColumn()
+creadoEl!: Date;
 }

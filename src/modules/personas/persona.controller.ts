@@ -1,8 +1,11 @@
-import { Request, Response } from 'express';
+import { Request, RequestHandler, Response } from 'express';
 import { PersonaService } from './persona.service';
 import { ActualizarPersonaDto } from './dto/actualizar-persona.dto';
+import { AppDataSource } from '../../database/data-source';
+import { Persona } from '../../entities/Persona.entity';
 
 export class PersonaController {
+  private repo = AppDataSource.getRepository(Persona);
   constructor(private service: PersonaService) {}
 
   listar = async (_req: Request, res: Response): Promise<void> => {
@@ -34,6 +37,28 @@ export class PersonaController {
       res.json({ mensaje: 'Persona eliminada' });
     } catch (error: any) {
       res.status(400).json({ error: error.message });
+    }
+  };
+
+  search: RequestHandler = async (req, res) => {
+    try {
+      const q = String(req.query.q ?? '').trim();
+      if (!q || q.length < 2) {
+        res.json([]);
+        return;
+      }
+
+      const personas = await this.repo
+        .createQueryBuilder('p')
+        .where('p.nombre ILIKE :q OR p.apellido ILIKE :q', { q: `%${q}%` })
+        .orderBy('p.apellido', 'ASC')
+        .addOrderBy('p.nombre', 'ASC')
+        .limit(20)
+        .getMany();
+
+      res.json(personas);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
     }
   };
 }

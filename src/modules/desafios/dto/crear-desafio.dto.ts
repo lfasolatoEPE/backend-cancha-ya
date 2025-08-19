@@ -1,4 +1,4 @@
-import { IsUUID, IsArray, ArrayMinSize, IsOptional, IsString } from 'class-validator';
+import { IsArray, ArrayNotEmpty, IsOptional, IsUUID } from 'class-validator';
 
 export class CrearDesafioDto {
   @IsUUID()
@@ -7,11 +7,13 @@ export class CrearDesafioDto {
   @IsUUID()
   deporteId!: string;
 
+  // Invitados que recibirán mail para aceptar
   @IsArray()
-  @ArrayMinSize(1, { message: 'Debe haber al menos un jugador retador' })
-  jugadoresRetador!: string[]; // array de IDs de Persona
+  @ArrayNotEmpty()
+  invitadosDesafiadosIds!: string[];
 
+  // Opcional: además del creador, puede sumar compañeros de su lado
+  @IsArray()
   @IsOptional()
-  @IsString()
-  nombreRetador?: string;
+  jugadoresCreadorIds?: string[];
 }

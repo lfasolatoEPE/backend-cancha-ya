@@ -2,36 +2,55 @@ import { Request, Response } from 'express';
 import { DesafioService } from './desafio.service';
 import { CrearDesafioDto } from './dto/crear-desafio.dto';
 import { AceptarDesafioDto } from './dto/aceptar-desafio.dto';
+import { RechazarDesafioDto } from './dto/rechazar-desafio.dto';
+import { AgregarJugadoresDto } from './dto/agregar-jugadores.dto';
 import { FinalizarDesafioDto } from './dto/finalizar-desafio.dto';
-import { FiltroDesafioDto } from './dto/filtro-desafio.dto';
+
 
 export class DesafioController {
   constructor(private service: DesafioService) {}
 
+  private getPersonaId(req: Request) {
+    // ajustar según tu authMiddleware
+    return (req as any).user?.personaId as string;
+  }
+
   crear = async (req: Request, res: Response) => {
     try {
       const dto = req.body as CrearDesafioDto;
-      const desafio = await this.service.crearDesafio(dto);
+      const personaId = this.getPersonaId(req);
+      const desafio = await this.service.crearDesafio(dto, personaId);
       res.status(201).json(desafio);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
   };
 
-  aceptar = async (req: Request, res: Response) => {
+  aceptarDesafio = async (req: Request, res: Response) => {
     try {
-      const dto = req.body as AceptarDesafioDto;
-      const desafio = await this.service.aceptarDesafio(req.params.id, dto.jugadoresRival, dto.nombreRival);
+      const { personaId } = req.body as AceptarDesafioDto;
+      const desafio = await this.service.aceptarDesafio(req.params.id, personaId);
       res.json(desafio);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
   };
 
-  cargarResultado = async (req: Request, res: Response) => {
+  rechazarDesafio = async (req: Request, res: Response) => {
     try {
-      const { resultado } = req.body as FinalizarDesafioDto;
-      const desafio = await this.service.cargarResultado(req.params.id, resultado);
+      const { personaId } = req.body as RechazarDesafioDto;
+      const desafio = await this.service.rechazarDesafio(req.params.id, personaId);
+      res.json(desafio);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  };
+
+  agregarJugadores = async (req: Request, res: Response) => {
+    try {
+      const dto = req.body as AgregarJugadoresDto;
+      const solicitanteId = this.getPersonaId(req);
+      const desafio = await this.service.agregarJugadores(req.params.id, solicitanteId, dto);
       res.json(desafio);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -40,17 +59,18 @@ export class DesafioController {
 
   finalizar = async (req: Request, res: Response) => {
     try {
-      const desafio = await this.service.finalizarDesafio(req.params.id);
+      const dto = req.body as FinalizarDesafioDto;
+      const solicitanteId = this.getPersonaId(req);
+      const desafio = await this.service.finalizarDesafio(req.params.id, solicitanteId, dto);
       res.json(desafio);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
   };
 
-  listar = async (req: Request, res: Response) => {
+  listar = async (_req: Request, res: Response) => {
     try {
-      const filtros = req.query as FiltroDesafioDto;
-      const lista = await this.service.listarDesafios(filtros);
+      const lista = await this.service.listarDesafios();
       res.json(lista);
     } catch (error: any) {
       res.status(400).json({ error: error.message });

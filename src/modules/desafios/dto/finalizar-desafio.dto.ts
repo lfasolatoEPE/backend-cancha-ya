@@ -1,9 +1,18 @@
-import { IsString, Matches } from 'class-validator';
+import { IsIn, IsOptional, Matches, IsInt, Min, Max } from 'class-validator';
 
 export class FinalizarDesafioDto {
-  @IsString()
-  @Matches(/^\\d+\\s*\\-\\s*\\d+$/, {
-    message: 'El resultado debe tener el formato "3-2"',
-  })
-  resultado!: string;
+  @IsIn(['creador', 'desafiado'])
+  ganadorLado!: 'creador' | 'desafiado';
+
+  // formato opcional "x-y"
+  @IsOptional()
+  @Matches(/^\s*\d+\s*-\s*\d+\s*$/)
+  resultado?: string;
+
+  // valoración opcional 1..5
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  valoracion?: number;
 }
