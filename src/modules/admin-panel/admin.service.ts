@@ -56,7 +56,7 @@ export class AdminService {
       .addSelect('cancha.nombre', 'nombre')
       .addSelect('COUNT(reserva.id)', 'totalReservas')
       .groupBy('cancha.id')
-      .orderBy('totalReservas', 'DESC')
+      .orderBy('"totalReservas"', 'DESC')
       .limit(5)
       .getRawMany();
 
@@ -73,7 +73,7 @@ export class AdminService {
       .addSelect('SUM(deuda.monto)', 'totalDeuda')
       .where('deuda.pagada = false')
       .groupBy('persona.id')
-      .orderBy('totalDeuda', 'DESC')
+      .orderBy('"totalDeuda"', 'DESC') // 👈 FIX
       .getRawMany();
 
     return personas;
