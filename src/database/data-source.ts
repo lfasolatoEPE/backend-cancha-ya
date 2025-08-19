@@ -6,17 +6,27 @@ import path from 'path';
 
 dotenv.config();
 
-console.log("🧭 __dirname =", __dirname);
+const isNotProduction = process.env.NODE_ENV !== 'production';
+// TODO: Replace console.* with centralized logger once utils/logger.ts is implemented
+if (isNotProduction) {
+  console.log("🧭 __dirname =", __dirname);
+}
 
 const entitiesDir = path.join(__dirname, '../entities');
-console.log("🗂️ Buscando archivos en:", entitiesDir);
+if (isNotProduction) {
+  console.log("🗂️ Buscando archivos en:", entitiesDir);
+}
 
 try {
   const files = fs.readdirSync(entitiesDir);
   const entityFiles = files.filter(f => f.endsWith('.entity.js') || f.endsWith('.entity.ts'));
-  console.log("🔍 Entidades encontradas:", entityFiles);
+  if (isNotProduction) {
+    console.log("🔍 Entidades encontradas:", entityFiles);
+  }
 } catch (error) {
-  console.error("❌ Error leyendo carpeta de entidades:", error);
+  if (isNotProduction) {
+    console.error("❌ Error leyendo carpeta de entidades:", error);
+  }
 }
 export const AppDataSource = new DataSource({
   type: 'postgres',
