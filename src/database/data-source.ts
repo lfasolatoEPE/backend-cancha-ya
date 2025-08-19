@@ -3,29 +3,29 @@ import { DataSource } from 'typeorm';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import logger from '../utils/logger';
 
 dotenv.config();
 
 const isNotProduction = process.env.NODE_ENV !== 'production';
-// TODO: Replace console.* with centralized logger once utils/logger.ts is implemented
 if (isNotProduction) {
-  console.log("🧭 __dirname =", __dirname);
+  logger.info('🧭 __dirname =', __dirname);
 }
 
 const entitiesDir = path.join(__dirname, '../entities');
 if (isNotProduction) {
-  console.log("🗂️ Buscando archivos en:", entitiesDir);
+  logger.info('🗂️ Buscando archivos en:', entitiesDir);
 }
 
 try {
   const files = fs.readdirSync(entitiesDir);
   const entityFiles = files.filter(f => f.endsWith('.entity.js') || f.endsWith('.entity.ts'));
   if (isNotProduction) {
-    console.log("🔍 Entidades encontradas:", entityFiles);
+    logger.info('🔍 Entidades encontradas:', entityFiles);
   }
 } catch (error) {
   if (isNotProduction) {
-    console.error("❌ Error leyendo carpeta de entidades:", error);
+    logger.error('❌ Error leyendo carpeta de entidades:', error);
   }
 }
 export const AppDataSource = new DataSource({

@@ -13,10 +13,11 @@ import { Reserva, EstadoReserva } from '../entities/Reserva.entity';
 import { Desafio, EstadoDesafio } from '../entities/Desafio.entity';
 import { Deuda } from '../entities/Deuda.entity';
 import { Valoracion } from '../entities/Valoracion.entity';
+import logger from '../utils/logger';
 
 (async () => {
   await AppDataSource.initialize();
-  console.log('🌱 Ejecutando seed de datos iniciales...');
+  logger.info('🌱 Ejecutando seed de datos iniciales...');
 
   const rolRepo = AppDataSource.getRepository(Rol);
   const personaRepo = AppDataSource.getRepository(Persona);
@@ -37,7 +38,7 @@ import { Valoracion } from '../entities/Valoracion.entity';
     const existe = await rolRepo.findOneBy({ nombre });
     if (!existe) await rolRepo.save(rolRepo.create({ nombre }));
   }
-  console.log('✅ Roles creados');
+  logger.info('✅ Roles creados');
 
   const crearUsuarioConPerfil = async (nombre: string, apellido: string, email: string, password: string, rolNombre: string, ranking: number) => {
     const personaExistente = await personaRepo.findOneBy({ email });
@@ -54,14 +55,14 @@ import { Valoracion } from '../entities/Valoracion.entity';
   await crearUsuarioConPerfil('Juan', 'Pérez', 'usuario@canchaya.com', 'usuario123', 'usuario', 1000);
   await crearUsuarioConPerfil('Marta', 'Gómez', 'marta@gmail.com', 'marta123', 'usuario', 1100);
   await crearUsuarioConPerfil('Pedro', 'López', 'pedro@gmail.com', 'pedro123', 'usuario', 1050);
-  console.log('👥 Usuarios y perfiles creados');
+  logger.info('👥 Usuarios y perfiles creados');
 
   const deportes = ['f5', 'f7', 'f11', 'padel'];
   for (const nombre of deportes) {
     const existe = await deporteRepo.findOneBy({ nombre });
     if (!existe) await deporteRepo.save(deporteRepo.create({ nombre }));
   }
-  console.log('🏅 Deportes cargados');
+  logger.info('🏅 Deportes cargados');
 
   for (let hora = 18; hora <= 23; hora++) {
     const horaInicio = `${hora.toString().padStart(2, '0')}:00`;
@@ -69,7 +70,7 @@ import { Valoracion } from '../entities/Valoracion.entity';
     const existe = await horarioRepo.findOneBy({ horaInicio });
     if (!existe) await horarioRepo.save(horarioRepo.create({ horaInicio, horaFin }));
   }
-  console.log('⏰ Horarios creados');
+  logger.info('⏰ Horarios creados');
 
   let club = await clubRepo.findOneBy({ nombre: 'Club Central' });
   if (!club) club = await clubRepo.save(clubRepo.create({
@@ -99,7 +100,7 @@ import { Valoracion } from '../entities/Valoracion.entity';
       if (!existe) await disponibilidadRepo.save(disponibilidadRepo.create({ cancha, horario, diaSemana: dia }));
     }
   }
-  console.log('📅 Disponibilidades creadas');
+  logger.info('📅 Disponibilidades creadas');
 
   const usuarios = await usuarioRepo.find({ where: {}, relations: ['persona'] });
   const usuario1 = usuarios.find(u => u.persona.email === 'usuario@canchaya.com');
@@ -152,7 +153,7 @@ import { Valoracion } from '../entities/Valoracion.entity';
     }
   }
 
-  console.log('✅ Seed completo');
+  logger.info('✅ Seed completo');
   process.exit(0);
 })();
 
