@@ -16,8 +16,9 @@ export class ReservaService {
     personaId: string;
     disponibilidadId: string;
     fechaHora: string;
+    usuarioId: string;
   }) {
-    const { personaId, disponibilidadId, fechaHora } = dto;
+    const { personaId, disponibilidadId, fechaHora, usuarioId } = dto;
 
     const persona = await personaRepo.findOne({ where: { id: personaId } });
     if (!persona) throw new Error('Persona no encontrada');
@@ -59,19 +60,22 @@ export class ReservaService {
       disponibilidad
     });
 
+    const creada = await reservaRepo.save(reserva);
+
     await auditoriaRepo.save(
       auditoriaRepo.create({
+        usuario: { id: usuarioId } as any,
         accion: 'crear_reserva',
         descripcion: `Persona ${persona.nombre} ${persona.apellido} creó una reserva en cancha ${disponibilidad.cancha.nombre}`,
         entidad: 'reserva',
-        entidadId: reserva.id
+        entidadId: creada.id
       })
     );
 
-    return await reservaRepo.save(reserva);
+    return creada;
   }
 
-  async confirmarReserva(id: string) {
+  async confirmarReserva(id: string, usuarioId: string) {
     const reserva = await reservaRepo.findOne({
       where: { id },
       relations: ['persona', 'disponibilidad', 'disponibilidad.cancha']
@@ -84,17 +88,18 @@ export class ReservaService {
 
     await auditoriaRepo.save(
       auditoriaRepo.create({
+        usuario: { id: usuarioId } as any,
         accion: 'confirmar_reserva',
         descripcion: `Reserva confirmada por ${reserva.persona.nombre} ${reserva.persona.apellido} en cancha ${reserva.disponibilidad.cancha.nombre}`,
         entidad: 'reserva',
-        entidadId: reserva.id
+        entidadId: actualizada.id
       })
     );
 
     return actualizada;
   }
 
-  async cancelarReserva(id: string) {
+  async cancelarReserva(id: string, usuarioId: string) {
     const reserva = await reservaRepo.findOne({
       where: { id },
       relations: ['persona', 'disponibilidad', 'disponibilidad.cancha']
@@ -107,10 +112,11 @@ export class ReservaService {
 
     await auditoriaRepo.save(
       auditoriaRepo.create({
+        usuario: { id: usuarioId } as any,
         accion: 'cancelar_reserva',
         descripcion: `Reserva cancelada por ${reserva.persona.nombre} ${reserva.persona.apellido} en cancha ${reserva.disponibilidad.cancha.nombre}`,
         entidad: 'reserva',
-        entidadId: reserva.id
+        entidadId: actualizada.id
       })
     );
 

@@ -7,7 +7,8 @@ export class ReservaController {
   crearReserva = async (req: Request, res: Response) => {
     try {
       const { personaId, disponibilidadId, fechaHora } = req.body;
-      const reserva = await this.service.crearReserva({ personaId, disponibilidadId, fechaHora });
+      const usuarioId = (req as any).usuario?.id;
+      const reserva = await this.service.crearReserva({ personaId, disponibilidadId, fechaHora, usuarioId });
       res.status(201).json(reserva);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -16,7 +17,8 @@ export class ReservaController {
 
   confirmarReserva = async (req: Request, res: Response) => {
     try {
-      const result = await this.service.confirmarReserva(req.params.id);
+      const usuarioId = (req as any).usuario?.id;
+      const result = await this.service.confirmarReserva(req.params.id, usuarioId);
       res.status(200).json(result);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -25,7 +27,8 @@ export class ReservaController {
 
   cancelarReserva = async (req: Request, res: Response) => {
     try {
-      const result = await this.service.cancelarReserva(req.params.id);
+      const usuarioId = (req as any).usuario?.id;
+      const result = await this.service.cancelarReserva(req.params.id, usuarioId);
       res.status(200).json(result);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
