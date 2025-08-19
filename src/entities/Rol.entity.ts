@@ -13,4 +13,7 @@ export class Rol {
 
   @Column({ unique: true })
   nombre!: string; // Ej: 'admin', 'usuario', 'moderador'
+
+  @OneToMany(() => Usuario, usuario => usuario.rol)
+  usuarios!: Usuario[];
 }
