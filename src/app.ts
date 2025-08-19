@@ -41,7 +41,7 @@ app.use('/api/deportes', deporteRoutes);
 app.use('/api/horarios', horarioRoutes);
 app.use('/api/valoraciones', valoracionRoutes);
 app.use('/api/deudas', deudaRoutes);
-app.use('/api/disponibilid-cancha', disponibilidadCanchaRoutes);
+app.use('/api/disponibilidad-cancha', disponibilidadCanchaRoutes);
 app.use('/api/disponibilidades', disponibilidadRoutes);
 app.use('/api/perfil-competitivo', competitivoRoutes);
 app.use('/api/desafios', desafioRoutes);
