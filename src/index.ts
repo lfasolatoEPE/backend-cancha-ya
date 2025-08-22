@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { AppDataSource } from './database/data-source';
 import app from './app';
 
-const PORT = parseInt(process.env.PORT || '3000', 10);
+const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
 AppDataSource.initialize()
   .then(() => {

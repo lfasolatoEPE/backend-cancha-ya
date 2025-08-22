@@ -24,6 +24,7 @@ import adminRoutes from './modules/admin-panel/admin.routes';
 import personaRoutes from './modules/personas/persona.routes';
 import rankingRoutes from './modules/ranking/ranking.routes';
 import auditoriaRoutes from './modules/auditoria/auditoria.routes';
+import notifsRoutes from './modules/notifs/notifs.routes';
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use('/api/ranking', rankingRoutes);
 app.use('/api/reportes', reportesRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/auditoria', auditoriaRoutes);
+app.use('/api/notifs', notifsRoutes);
 
 // Swagger
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));

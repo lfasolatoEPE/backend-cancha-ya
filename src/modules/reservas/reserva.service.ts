@@ -5,10 +5,19 @@ import { Deuda } from '../../entities/Deuda.entity';
 import { DisponibilidadHorario } from '../../entities/DisponibilidadHorario.entity';
 import { AuditoriaService } from '../auditoria/auditoria.service';
 
+// 👇 imports para notifs
+import { NotifsService } from '../notifs/notifs.service';
+import { tplReservaCreada } from '../../templates/reserva-creada';
+import { DateTime } from 'luxon';
+import { Usuario } from '../../entities/Usuario.entity';
+import { EmailService } from '../../providers/email.service';
+
 const reservaRepo = AppDataSource.getRepository(Reserva);
 const personaRepo = AppDataSource.getRepository(Persona);
 const deudaRepo = AppDataSource.getRepository(Deuda);
 const disponibilidadRepo = AppDataSource.getRepository(DisponibilidadHorario);
+const usuarioRepo = AppDataSource.getRepository(Usuario);
+
 const auditoriaService = new AuditoriaService();
 
 export class ReservaService {
@@ -76,7 +85,13 @@ export class ReservaService {
   async confirmarReserva(id: string, usuarioId: string) {
     const reserva = await reservaRepo.findOne({
       where: { id },
-      relations: ['persona', 'disponibilidad', 'disponibilidad.cancha']
+      relations: [
+        'persona',
+        'disponibilidad',
+        'disponibilidad.cancha',
+        // 'disponibilidad.cancha.club', // si tenés club relacionado, podés incluirlo
+        // 'disponibilidad.horario',     // no es estrictamente necesario para el mail
+      ]
     });
 
     if (!reserva) throw new Error('Reserva no encontrada');
@@ -91,6 +106,60 @@ export class ReservaService {
       entidad: 'reserva',
       entidadId: actualizada.id
     });
+
+    // ───────────── Notificaciones ─────────────
+    try {
+      const notifs = new NotifsService(AppDataSource);
+
+      // Formato humano AR
+      const inicio = DateTime.fromJSDate(reserva.fechaHora, { zone: 'America/Argentina/Cordoba' });
+      const fechaHumana = inicio.toFormat("cccc dd 'de' LLLL 'a las' HH:mm");
+
+      const cancha = reserva.disponibilidad?.cancha?.nombre ?? 'Cancha';
+      const club =
+        (reserva as any)?.disponibilidad?.cancha?.club?.nombre ??
+        'Tu club';
+
+      // buscamos el usuario dueño de esta reserva (por la persona vinculada)
+      const usuarioReserva = await usuarioRepo.findOne({
+        where: { persona: { id: reserva.persona.id } },
+        relations: ['persona'],
+      });
+
+      const tpl = tplReservaCreada({ fechaHumana, club, cancha });
+
+      if (usuarioReserva?.id) {
+        // 1) Mail inmediato a suscripciones del usuario
+        await notifs.sendEmailToUser(usuarioReserva.id, tpl.subject, tpl.html, tpl.text);
+
+        // 2) Recordatorios (24h y 1h antes). Si el tiempo ya pasó, el job corre ASAP.
+        const inicioISO = inicio.toISO()!;
+        await notifs.scheduleReservaReminder(
+          usuarioReserva.id,
+          { reservaId: reserva.id, fechaISO: inicioISO, club, cancha },
+          inicio.minus({ hours: 24 }).toISO()!
+        );
+        await notifs.scheduleReservaReminder(
+          usuarioReserva.id,
+          { reservaId: reserva.id, fechaISO: inicioISO, club, cancha },
+          inicio.minus({ hours: 1 }).toISO()!
+        );
+      } else {
+        // Fallback: si no hay Usuario asociado a esta Persona, enviamos directo por email si existe,
+        // pero NO se programan recordatorios (porque dependen de userId/subs).
+        const to = reserva.persona?.email;
+        if (to) {
+          await EmailService.send({ to, subject: tpl.subject, html: tpl.html, text: tpl.text });
+          console.warn('⚠️ No se encontró Usuario vinculado a la Persona; se envió mail directo y NO se agendaron recordatorios.');
+        } else {
+          console.warn('⚠️ Persona sin email y sin Usuario vinculado: no se pudo notificar.');
+        }
+      }
+    } catch (err) {
+      console.error('❌ Error enviando notificaciones de reserva confirmada:', err);
+      // no interrumpe el flujo de confirmación
+    }
+    // ─────────────────────────────────────────
 
     return actualizada;
   }
@@ -113,6 +182,8 @@ export class ReservaService {
       entidad: 'reserva',
       entidadId: actualizada.id
     });
+
+    // (opcional) enviar notificación de cancelación aquí
 
     return actualizada;
   }
