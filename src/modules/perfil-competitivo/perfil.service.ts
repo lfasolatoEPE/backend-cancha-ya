@@ -5,35 +5,64 @@ import { Usuario } from '../../entities/Usuario.entity';
 const perfilRepo = AppDataSource.getRepository(PerfilCompetitivo);
 const usuarioRepo = AppDataSource.getRepository(Usuario);
 
+// Debe coincidir con el usado en desafíos
+const ELO_INICIAL = 1200;
+
 export class PerfilService {
-  async obtenerPorUsuario(usuarioId: string) {
-    const perfil = await perfilRepo.findOne({
-      where: { usuario: { id: usuarioId } },
-      relations: ['usuario']
+  /**
+   * Devuelve el perfil del usuario (lo crea si no existe).
+   */
+  async obtenerMiPerfil(personaId: string) {
+    const usuario = await usuarioRepo.findOne({
+      where: { persona: { id: personaId } },
+      relations: ['persona'],
+    });
+    if (!usuario) throw new Error('Usuario no encontrado');
+
+    let perfil = await perfilRepo.findOne({
+      where: { usuario: { id: usuario.id } },
+      relations: ['usuario', 'usuario.persona'],
     });
 
-    if (!perfil) throw new Error('Perfil no encontrado');
+    if (!perfil) {
+      perfil = perfilRepo.create({
+        usuario,
+        ranking: ELO_INICIAL,
+        activo: true,
+      });
+      perfil = await perfilRepo.save(perfil);
+    }
+
     return perfil;
   }
 
-  async actualizar(usuarioId: string, data: { activo?: boolean; ranking?: number }) {
-    let perfil = await perfilRepo.findOne({ where: { usuario: { id: usuarioId } } });
+  /**
+   * Permite modificar banderas del perfil (no el ranking).
+   */
+  async actualizarMiPerfil(personaId: string, dto: { activo?: boolean }) {
+    const usuario = await usuarioRepo.findOne({
+      where: { persona: { id: personaId } },
+      relations: ['persona'],
+    });
+    if (!usuario) throw new Error('Usuario no encontrado');
+
+    let perfil = await perfilRepo.findOne({
+      where: { usuario: { id: usuario.id } },
+      relations: ['usuario', 'usuario.persona'],
+    });
 
     if (!perfil) {
-      const usuario = await usuarioRepo.findOneBy({ id: usuarioId });
-      if (!usuario) throw new Error('Usuario no encontrado');
-
+      // Si no existe aún, lo creamos con valores por defecto
       perfil = perfilRepo.create({
         usuario,
-        activo: data.activo ?? false,
-        ranking: data.ranking ?? 1000
+        ranking: ELO_INICIAL,
+        activo: true,
       });
-
-      return await perfilRepo.save(perfil);
     }
 
-    if (data.activo !== undefined) perfil.activo = data.activo;
-    if (data.ranking !== undefined) perfil.ranking = data.ranking;
+    if (dto.activo !== undefined) {
+      perfil.activo = dto.activo;
+    }
 
     return await perfilRepo.save(perfil);
   }
