@@ -6,35 +6,35 @@ import { CrearUsuarioDto } from './dto/crear-usuario.dto';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
 import { authMiddleware } from '../../middlewares/auth.middleware';
 import { authorizeRoles } from '../../middlewares/role.middleware';
+import { CambiarRolDto } from './dto/cambiar-rol.dto';
 
 const router = Router();
 const controller = new UsuarioController(new UsuarioService());
 
-router.post(
-  '/registro',
-  validateDto(CrearUsuarioDto),
-  controller.crearUsuario
-);
+// Registro “admin-only” si querés crear usuarios desde panel (sino usá /auth/register)
+router.post('/registro', validateDto(CrearUsuarioDto), controller.crearUsuario);
 
-router.post(
-  '/admin',
+router.post('/admin',
   authMiddleware,
   authorizeRoles('admin'),
   validateDto(CrearUsuarioDto),
   controller.crearAdmin
 );
 
-router.get(
-  '/',
-  authMiddleware,
-  controller.obtenerUsuarios
-);
+router.get('/', authMiddleware, authorizeRoles('admin'), controller.obtenerUsuarios);
 
-router.patch(
-  '/:id',
+router.patch('/:id',
   authMiddleware,
   validateDto(ActualizarUsuarioDto),
   controller.actualizarUsuario
+);
+
+// cambio de rol
+router.patch('/:id/rol',
+  authMiddleware,
+  authorizeRoles('admin'),
+  validateDto(CambiarRolDto),
+  controller.cambiarRol
 );
 
 export default router;

@@ -13,7 +13,8 @@
     "worker:notifs": "node dist/modules/notifs/worker.js",
     "dev:worker": "ts-node src/modules/notifs/worker.ts",
     "dev:both": "concurrently -k -n API,WORKER \"npm:dev\" \"npm:dev:worker\"",
-    "seed:notifs": "ts-node scripts/seed-notifs.ts"
+    "seed:notifs": "ts-node scripts/seed-notifs.ts",
+    "seed:users": "ts-node -r dotenv/config src/scripts/seed-users.ts"
   },
   "keywords": [],
   "author": "Lucas Fasolato",
@@ -25,6 +26,7 @@
     "class-validator": "^0.14.2",
     "cors": "^2.8.5",
     "csv-writer": "^1.6.0",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
     "ioredis": "^5.7.0",

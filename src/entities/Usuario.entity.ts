@@ -3,13 +3,13 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
-  OneToMany,
   OneToOne,
-  JoinColumn
+  JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Persona } from './Persona.entity';
 import { Rol } from './Rol.entity';
-import { Valoracion } from './Valoracion.entity';
 import { PerfilCompetitivo } from './PerfilCompetitivo.entity';
 
 @Entity()
@@ -23,15 +23,27 @@ export class Usuario {
   @Column({ default: true })
   activo!: boolean;
 
-  @ManyToOne(() => Persona)
+  @ManyToOne(() => Persona, { eager: true })
   @JoinColumn()
   persona!: Persona;
 
-  @ManyToOne(() => Rol)
+  @ManyToOne(() => Rol, { eager: true })
   @JoinColumn()
   rol!: Rol;
 
-  @OneToOne(() => PerfilCompetitivo, perfil => perfil.usuario)
+  @OneToOne(() => PerfilCompetitivo, (perfil) => perfil.usuario)
   perfilCompetitivo!: PerfilCompetitivo;
 
+  // Auditoría de login/seguridad
+  @Column({ type: 'int', default: 0 })
+  failedLoginAttempts!: number;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  lastLoginAt!: Date | null;
+
+  @CreateDateColumn({ type: 'timestamptz' })
+  createdAt!: Date;
+
+  @UpdateDateColumn({ type: 'timestamptz' })
+  updatedAt!: Date;
 }

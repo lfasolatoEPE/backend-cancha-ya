@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 
 export const authorizeRoles = (...roles: string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const usuario = (req as any).usuario;
+    const usuario = (req as any).user;
 
     if (!usuario || !usuario.rol) {
       res.status(401).json({ error: 'No autenticado' });

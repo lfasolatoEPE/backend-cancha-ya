@@ -26,7 +26,7 @@ export class UsuarioService {
     const persona = personaRepo.create({ nombre, apellido, email });
     await personaRepo.save(persona);
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
 
     const rolEntity = await rolRepo.findOne({ where: { nombre: rol } });
     if (!rolEntity) throw new Error('Rol no válido');
@@ -35,16 +35,19 @@ export class UsuarioService {
       passwordHash,
       persona,
       rol: rolEntity,
+      activo: true,
+      failedLoginAttempts: 0,
+      lastLoginAt: null,
     });
 
     await usuarioRepo.save(usuario);
 
+    // Perfil competitivo inicial (si aplica a tu negocio)
     const perfil = perfilRepo.create({
       usuario,
       activo: false,
-      ranking: 1000
+      ranking: 1000,
     });
-
     await perfilRepo.save(perfil);
 
     return {
@@ -59,35 +62,33 @@ export class UsuarioService {
     };
   }
 
-  async crearAdmin(data: {
-    nombre: string;
-    apellido: string;
-    email: string;
-    password: string;
-  }) {
+  async crearAdmin(data: { nombre: string; apellido: string; email: string; password: string }) {
     return this.crearUsuario({ ...data, rol: 'admin' });
   }
 
   async listarUsuarios() {
     const usuarios = await usuarioRepo.find({
-      relations: ['persona', 'rol'],
       select: {
         id: true,
         activo: true,
-        persona: { nombre: true, apellido: true, email: true },
-        rol: { nombre: true },
+        failedLoginAttempts: true,
+        lastLoginAt: true,
       },
+      relations: ['persona', 'rol'],
     });
 
-    return usuarios;
+    return usuarios.map((u) => ({
+      id: u.id,
+      activo: u.activo,
+      failedLoginAttempts: u.failedLoginAttempts,
+      lastLoginAt: u.lastLoginAt,
+      persona: { id: u.persona.id, nombre: u.persona.nombre, apellido: u.persona.apellido, email: u.persona.email },
+      rol: u.rol.nombre,
+    }));
   }
 
   async actualizarUsuario(id: string, data: { nombre?: string; apellido?: string; email?: string }) {
-    const usuario = await usuarioRepo.findOne({
-      where: { id },
-      relations: ['persona'],
-    });
-
+    const usuario = await usuarioRepo.findOne({ where: { id }, relations: ['persona'] });
     if (!usuario) throw new Error('Usuario no encontrado');
 
     if (data.email) usuario.persona.email = data.email;
@@ -99,10 +100,24 @@ export class UsuarioService {
     return {
       id: usuario.id,
       persona: {
+        id: usuario.persona.id,
         nombre: usuario.persona.nombre,
         apellido: usuario.persona.apellido,
         email: usuario.persona.email,
       },
     };
+  }
+
+  async cambiarRol(userId: string, nuevoRol: 'usuario' | 'admin') {
+    const usuario = await usuarioRepo.findOne({ where: { id: userId }, relations: ['rol'] });
+    if (!usuario) throw new Error('Usuario no encontrado');
+
+    const rolEntity = await rolRepo.findOne({ where: { nombre: nuevoRol } });
+    if (!rolEntity) throw new Error('Rol no válido');
+
+    usuario.rol = rolEntity;
+    await usuarioRepo.save(usuario);
+
+    return { id: usuario.id, rol: usuario.rol.nombre };
   }
 }
