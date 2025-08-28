@@ -6,6 +6,7 @@ import { RefreshToken } from '../../entities/RefreshToken.entity';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { add } from 'date-fns';
+import crypto from 'crypto'; // ✅ usar módulo core de Node
 
 const usuarioRepo = AppDataSource.getRepository(Usuario);
 const personaRepo = AppDataSource.getRepository(Persona);
@@ -18,6 +19,10 @@ const REFRESH_TTL_DAYS = parseInt(process.env.JWT_REFRESH_DAYS || '7', 10); // 7
 
 export class AuthService {
   private signAccessToken(user: Usuario) {
+    if (!JWT_SECRET || JWT_SECRET === 'mi_secreto_super_seguro') {
+      // Opcional: forzá a setearlo en prod
+      console.warn('[AUTH] JWT_SECRET no definido o usando valor por defecto.');
+    }
     const payload = {
       id: user.id,
       rol: user.rol.nombre,
@@ -48,6 +53,7 @@ export class AuthService {
   }
 
   async login(email: string, password: string) {
+    // Si tu entidad Usuario NO tiene eager en persona, agregá relations: ['persona','rol']
     const user = await usuarioRepo.findOne({ where: { persona: { email } } });
     if (!user) throw new Error('Credenciales inválidas');
 
@@ -58,7 +64,6 @@ export class AuthService {
       throw new Error('Credenciales inválidas');
     }
 
-    // reset intentos fallidos
     user.failedLoginAttempts = 0;
     user.lastLoginAt = new Date();
     await usuarioRepo.save(user);
@@ -70,7 +75,7 @@ export class AuthService {
   }
 
   private async issueRefreshToken(user: Usuario) {
-    const token = cryptoRandomString(40);
+    const token = cryptoRandomString(40); // ✅ ahora usa crypto de Node
     const expiresAt = add(new Date(), { days: REFRESH_TTL_DAYS });
     const row = refreshRepo.create({ user, token, expiresAt, revoked: false });
     await refreshRepo.save(row);
@@ -102,11 +107,7 @@ export class AuthService {
   }
 }
 
-// util simple para token opaco
+// ✅ Generador seguro de string opaco usando Node crypto
 function cryptoRandomString(length = 40) {
-  const bytes = Buffer.from(crypto.getRandomValues(new Uint8Array(length)));
-  return bytes.toString('hex').slice(0, length);
+  return crypto.randomBytes(Math.ceil(length / 2)).toString('hex').slice(0, length);
 }
-
-// polyfill para Node < 19 (si hiciera falta)
-declare const crypto: any;
