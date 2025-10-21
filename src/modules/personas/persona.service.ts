@@ -1,5 +1,6 @@
 import { AppDataSource } from '../../database/data-source';
 import { Persona } from '../../entities/Persona.entity';
+import { isDuplicateError, normEmail } from '../../utils/db';
 
 const repo = AppDataSource.getRepository(Persona);
 
@@ -20,9 +21,16 @@ export class PersonaService {
 
     if (data.nombre) persona.nombre = data.nombre;
     if (data.apellido) persona.apellido = data.apellido;
-    if (data.email) persona.email = data.email;
+    if (data.email) persona.email = normEmail(data.email);
 
-    return await repo.save(persona);
+    try {
+      return await repo.save(persona);
+    } catch (err) {
+      if (isDuplicateError(err)) {
+        throw new Error('El email ya está registrado');
+      }
+      throw err;
+    }
   }
 
   async eliminar(id: string) {

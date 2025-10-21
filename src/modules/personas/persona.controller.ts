@@ -3,6 +3,7 @@ import { PersonaService } from './persona.service';
 import { ActualizarPersonaDto } from './dto/actualizar-persona.dto';
 import { AppDataSource } from '../../database/data-source';
 import { Persona } from '../../entities/Persona.entity';
+import { isDuplicateError } from '../../utils/db';
 
 export class PersonaController {
   private repo = AppDataSource.getRepository(Persona);
@@ -24,10 +25,24 @@ export class PersonaController {
 
   actualizar = async (req: Request, res: Response): Promise<void> => {
     try {
+      // 💡 sólo admin o el dueño (personaId del token)
+      const token = (req as any).user;
+      const isAdmin = token?.rol === 'admin';
+      const isOwner = token?.personaId === req.params.id;
+      if (!isAdmin && !isOwner) {
+        res.status(403).json({ error: 'No tienes permiso para modificar esta persona' });
+        return;
+      }
+
       const persona = await this.service.actualizar(req.params.id, req.body as ActualizarPersonaDto);
       res.json(persona);
     } catch (error: any) {
-      res.status(400).json({ error: error.message });
+      const msg = String(error?.message ?? 'Error');
+      if (isDuplicateError(error) || /registrad/i.test(msg)) {
+        res.status(409).json({ error: msg });
+        return;
+      }
+      res.status(400).json({ error: msg });
     }
   };
 
@@ -50,7 +65,7 @@ export class PersonaController {
 
       const personas = await this.repo
         .createQueryBuilder('p')
-        .where('p.nombre ILIKE :q OR p.apellido ILIKE :q', { q: `%${q}%` })
+        .where('p.nombre ILIKE :q OR p.apellido ILIKE :q OR p.email ILIKE :q', { q: `%${q}%` })
         .orderBy('p.apellido', 'ASC')
         .addOrderBy('p.nombre', 'ASC')
         .limit(20)

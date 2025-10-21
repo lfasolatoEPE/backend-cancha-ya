@@ -6,9 +6,18 @@ export class ReservaController {
 
   crearReserva = async (req: Request, res: Response) => {
     try {
-      const { personaId, disponibilidadId, fechaHora } = req.body;
-      const usuarioId = (req as any).usuario?.id;
-      const reserva = await this.service.crearReserva({ personaId, disponibilidadId, fechaHora, usuarioId });
+      const token = (req as any).user;
+      if (!token?.personaId) {
+        res.status(401).json({ error: 'No autenticado' });
+        return;
+      }
+      const { disponibilidadId, fechaHora } = req.body; // personaId se ignora
+      const reserva = await this.service.crearReserva({
+        personaId: token.personaId,
+        disponibilidadId,
+        fechaHora,
+        usuarioId: token.id,
+      });
       res.status(201).json(reserva);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -17,8 +26,8 @@ export class ReservaController {
 
   confirmarReserva = async (req: Request, res: Response) => {
     try {
-      const usuarioId = (req as any).usuario?.id;
-      const result = await this.service.confirmarReserva(req.params.id, usuarioId);
+      const token = (req as any).user;
+      const result = await this.service.confirmarReserva(req.params.id, token?.id);
       res.status(200).json(result);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
@@ -27,8 +36,8 @@ export class ReservaController {
 
   cancelarReserva = async (req: Request, res: Response) => {
     try {
-      const usuarioId = (req as any).usuario?.id;
-      const result = await this.service.cancelarReserva(req.params.id, usuarioId);
+      const token = (req as any).user;
+      const result = await this.service.cancelarReserva(req.params.id, token?.id);
       res.status(200).json(result);
     } catch (error: any) {
       res.status(400).json({ error: error.message });

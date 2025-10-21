@@ -1,3 +1,4 @@
+// Deuda.entity.ts
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import { Persona } from './Persona.entity';
 
@@ -13,7 +14,7 @@ export class Deuda {
   pagada!: boolean;
 
   @Column({ type: 'date', nullable: true })
-  fechaVencimiento!: string;
+  fechaVencimiento?: string | null;
 
   @ManyToOne(() => Persona, { eager: true })
   persona!: Persona;
