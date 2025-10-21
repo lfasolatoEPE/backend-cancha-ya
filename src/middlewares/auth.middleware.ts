@@ -10,7 +10,11 @@ export interface JWTPayload {
   exp?: number;
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'mi_secreto_super_seguro';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  // Mejor fallar temprano que validar con un secreto malo
+  throw new Error('Falta JWT_SECRET en variables de entorno');
+}
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization || '';
@@ -25,7 +29,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction):
     const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
     (req as any).user = decoded;
     next();
-  } catch (error) {
+  } catch {
     res.status(401).json({ error: 'Token inválido' });
   }
 };

@@ -3,6 +3,7 @@ import { UsuarioService } from './usuario.service';
 import { CrearUsuarioDto } from './dto/crear-usuario.dto';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
 import { CambiarRolDto } from './dto/cambiar-rol.dto';
+import { isDuplicateError } from '../../utils/db';
 
 export class UsuarioController {
   constructor(private service: UsuarioService) {}
@@ -13,7 +14,12 @@ export class UsuarioController {
       const usuario = await this.service.crearUsuario(dto);
       res.status(201).json(usuario);
     } catch (error: any) {
-      res.status(400).json({ error: error.message });
+      const msg = String(error?.message ?? 'Error creando usuario');
+      if (msg.includes('registrado') || isDuplicateError(error)) {
+        res.status(409).json({ error: msg });
+        return;
+      }
+      res.status(400).json({ error: msg });
     }
   };
 
@@ -23,7 +29,12 @@ export class UsuarioController {
       const usuario = await this.service.crearAdmin(body);
       res.status(201).json(usuario);
     } catch (error: any) {
-      res.status(400).json({ error: error.message });
+      const msg = String(error?.message ?? 'Error creando admin');
+      if (msg.includes('registrado') || isDuplicateError(error)) {
+        res.status(409).json({ error: msg });
+        return;
+      }
+      res.status(400).json({ error: msg });
     }
   };
 
@@ -50,7 +61,12 @@ export class UsuarioController {
       const usuario = await this.service.actualizarUsuario(id, body);
       res.json(usuario);
     } catch (error: any) {
-      res.status(400).json({ error: error.message });
+      const msg = String(error?.message ?? 'Error actualizando usuario');
+      if (msg.includes('registrado') || isDuplicateError(error)) {
+        res.status(409).json({ error: msg });
+        return;
+      }
+      res.status(400).json({ error: msg });
     }
   };
 

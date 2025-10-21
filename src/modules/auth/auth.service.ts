@@ -6,55 +6,79 @@ import { RefreshToken } from '../../entities/RefreshToken.entity';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { add } from 'date-fns';
-import crypto from 'crypto'; // ✅ usar módulo core de Node
+import crypto from 'crypto';
+import { isDuplicateError, normEmail } from '../../utils/db';
 
 const usuarioRepo = AppDataSource.getRepository(Usuario);
 const personaRepo = AppDataSource.getRepository(Persona);
 const rolRepo = AppDataSource.getRepository(Rol);
 const refreshRepo = AppDataSource.getRepository(RefreshToken);
 
-const JWT_SECRET = process.env.JWT_SECRET || 'mi_secreto_super_seguro';
-const ACCESS_TTL_MIN = parseInt(process.env.JWT_ACCESS_MIN || '15', 10); // 15m
-const REFRESH_TTL_DAYS = parseInt(process.env.JWT_REFRESH_DAYS || '7', 10); // 7d
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('Falta JWT_SECRET en variables de entorno');
+}
+const ACCESS_TTL_MIN = parseInt(process.env.JWT_ACCESS_MIN || '15', 10);
+const REFRESH_TTL_DAYS = parseInt(process.env.JWT_REFRESH_DAYS || '7', 10);
 
 export class AuthService {
   private signAccessToken(user: Usuario) {
-    if (!JWT_SECRET || JWT_SECRET === 'mi_secreto_super_seguro') {
-      // Opcional: forzá a setearlo en prod
-      console.warn('[AUTH] JWT_SECRET no definido o usando valor por defecto.');
-    }
     const payload = {
       id: user.id,
       rol: user.rol.nombre,
       personaId: user.persona.id,
       email: user.persona.email,
     };
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: `${ACCESS_TTL_MIN}m` });
+    return jwt.sign(payload, JWT_SECRET!, { expiresIn: `${ACCESS_TTL_MIN}m` });
   }
 
   async register(data: { nombre: string; apellido: string; email: string; password: string }) {
-    const emailUsado = await personaRepo.findOne({ where: { email: data.email } });
-    if (emailUsado) throw new Error('El email ya está registrado');
+    const email = normEmail(data.email);
 
-    const persona = personaRepo.create({ nombre: data.nombre, apellido: data.apellido, email: data.email });
-    await personaRepo.save(persona);
+    try {
+      return await AppDataSource.transaction(async (manager) => {
+        const personaRepoT = manager.getRepository(Persona);
+        const usuarioRepoT = manager.getRepository(Usuario);
+        const rolRepoT = manager.getRepository(Rol);
+        const refreshRepoT = manager.getRepository(RefreshToken);
 
-    const passwordHash = await bcrypt.hash(data.password, 12);
-    const rolUsuario = await rolRepo.findOne({ where: { nombre: 'usuario' } });
-    if (!rolUsuario) throw new Error('Rol base "usuario" no existe. Crear seed de roles.');
+        const existente = await personaRepoT.findOne({ where: { email } });
+        if (existente) throw new Error('El email ya está registrado');
 
-    const usuario = usuarioRepo.create({ passwordHash, persona, rol: rolUsuario, activo: true });
-    await usuarioRepo.save(usuario);
+        const persona = personaRepoT.create({ nombre: data.nombre, apellido: data.apellido, email });
+        await personaRepoT.save(persona);
 
-    const accessToken = this.signAccessToken(usuario);
-    const refreshToken = await this.issueRefreshToken(usuario);
+        const passwordHash = await bcrypt.hash(data.password, 12);
+        const rolUsuario = await rolRepoT.findOne({ where: { nombre: 'usuario' } });
+        if (!rolUsuario) throw new Error('Rol base "usuario" no existe. Crear seed de roles.');
 
-    return { userId: usuario.id, accessToken, refreshToken };
+        const usuario = usuarioRepoT.create({ passwordHash, persona, rol: rolUsuario, activo: true });
+        await usuarioRepoT.save(usuario);
+
+        const accessToken = this.signAccessToken(usuario);
+        const refreshToken = await this.issueRefreshTokenWithManager(usuario, refreshRepoT);
+
+        return { userId: usuario.id, accessToken, refreshToken };
+      });
+    } catch (err) {
+      if (isDuplicateError(err)) {
+        throw new Error('El email ya está registrado');
+      }
+      throw err;
+    }
   }
 
   async login(email: string, password: string) {
-    // Si tu entidad Usuario NO tiene eager en persona, agregá relations: ['persona','rol']
-    const user = await usuarioRepo.findOne({ where: { persona: { email } } });
+    const emailN = normEmail(email);
+
+    const user = await usuarioRepo
+      .createQueryBuilder('u')
+      .leftJoinAndSelect('u.persona', 'p')
+      .leftJoinAndSelect('u.rol', 'r')
+      .addSelect('u.passwordHash') // <- clave para usar bcrypt.compare
+      .where('LOWER(p.email) = :email', { email: emailN })
+      .getOne();
+
     if (!user) throw new Error('Credenciales inválidas');
 
     const ok = await bcrypt.compare(password, user.passwordHash);
@@ -75,15 +99,31 @@ export class AuthService {
   }
 
   private async issueRefreshToken(user: Usuario) {
-    const token = cryptoRandomString(40); // ✅ ahora usa crypto de Node
+    const token = cryptoRandomString(40);
     const expiresAt = add(new Date(), { days: REFRESH_TTL_DAYS });
     const row = refreshRepo.create({ user, token, expiresAt, revoked: false });
     await refreshRepo.save(row);
     return row.token;
   }
 
+  private async issueRefreshTokenWithManager(user: Usuario, repo = refreshRepo) {
+    const token = cryptoRandomString(40);
+    const expiresAt = add(new Date(), { days: REFRESH_TTL_DAYS });
+    const row = repo.create({ user, token, expiresAt, revoked: false });
+    await repo.save(row);
+    return row.token;
+  }
+
   async refresh(refreshToken: string) {
-    const row = await refreshRepo.findOne({ where: { token: refreshToken, revoked: false } });
+    const row = await refreshRepo
+      .createQueryBuilder('rt')
+      .leftJoinAndSelect('rt.user', 'u')
+      .leftJoinAndSelect('u.persona', 'p')
+      .leftJoinAndSelect('u.rol', 'r')
+      .where('rt.token = :tkn', { tkn: refreshToken })
+      .andWhere('rt.revoked = false')
+      .getOne();
+
     if (!row) throw new Error('Refresh token inválido');
 
     if (row.expiresAt < new Date()) {
@@ -92,8 +132,7 @@ export class AuthService {
       throw new Error('Refresh token expirado');
     }
 
-    const user = row.user;
-    const accessToken = this.signAccessToken(user);
+    const accessToken = this.signAccessToken(row.user);
     return { accessToken };
   }
 
@@ -107,7 +146,6 @@ export class AuthService {
   }
 }
 
-// ✅ Generador seguro de string opaco usando Node crypto
 function cryptoRandomString(length = 40) {
   return crypto.randomBytes(Math.ceil(length / 2)).toString('hex').slice(0, length);
 }

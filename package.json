@@ -10,11 +10,12 @@
     "dev": "ts-node-dev src/index.ts",
     "seed": "ts-node src/scripts/seed.ts",
     "seed:reset": "npx ts-node src/scripts/reset-seed.ts",
+    "seed:users": "node -r ts-node/register src/scripts/seed-users.ts",
+    "seed:users:reset": "cross-env SEED_RESET=true node -r ts-node/register src/scripts/seed-users.ts",
     "worker:notifs": "node dist/modules/notifs/worker.js",
     "dev:worker": "ts-node src/modules/notifs/worker.ts",
     "dev:both": "concurrently -k -n API,WORKER \"npm:dev\" \"npm:dev:worker\"",
-    "seed:notifs": "ts-node scripts/seed-notifs.ts",
-    "seed:users": "ts-node -r dotenv/config src/scripts/seed-users.ts"
+    "seed:notifs": "ts-node scripts/seed-notifs.ts"
   },
   "keywords": [],
   "author": "Lucas Fasolato",
@@ -51,6 +52,7 @@
     "@types/supertest": "^6.0.3",
     "@types/swagger-ui-express": "^4.1.8",
     "concurrently": "^9.2.0",
+    "cross-env": "^10.1.0",
     "jest": "^30.0.3",
     "supertest": "^7.1.1",
     "ts-jest": "^29.4.0",

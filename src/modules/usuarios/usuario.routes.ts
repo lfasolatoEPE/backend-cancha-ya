@@ -11,10 +11,17 @@ import { CambiarRolDto } from './dto/cambiar-rol.dto';
 const router = Router();
 const controller = new UsuarioController(new UsuarioService());
 
-// Registro “admin-only” si querés crear usuarios desde panel (sino usá /auth/register)
-router.post('/registro', validateDto(CrearUsuarioDto), controller.crearUsuario);
+// Registro “admin-only” (si querés crear usuarios desde panel)
+router.post(
+  '/registro',
+  authMiddleware,
+  authorizeRoles('admin'),
+  validateDto(CrearUsuarioDto),
+  controller.crearUsuario
+);
 
-router.post('/admin',
+router.post(
+  '/admin',
   authMiddleware,
   authorizeRoles('admin'),
   validateDto(CrearUsuarioDto),
@@ -23,14 +30,16 @@ router.post('/admin',
 
 router.get('/', authMiddleware, authorizeRoles('admin'), controller.obtenerUsuarios);
 
-router.patch('/:id',
+router.patch(
+  '/:id',
   authMiddleware,
   validateDto(ActualizarUsuarioDto),
   controller.actualizarUsuario
 );
 
 // cambio de rol
-router.patch('/:id/rol',
+router.patch(
+  '/:id/rol',
   authMiddleware,
   authorizeRoles('admin'),
   validateDto(CambiarRolDto),

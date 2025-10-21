@@ -9,10 +9,11 @@ import { authorizeRoles } from '../../middlewares/role.middleware';
 const router = Router();
 const controller = new PersonaController(new PersonaService());
 
+router.get('/search', authMiddleware, controller.search);
 router.get('/', authMiddleware, authorizeRoles('admin'), controller.listar);
 router.get('/:id', authMiddleware, controller.obtener);
 router.patch('/:id', authMiddleware, validateDto(ActualizarPersonaDto), controller.actualizar);
 router.delete('/:id', authMiddleware, authorizeRoles('admin'), controller.eliminar);
-router.get('/search', authMiddleware, controller.search);
+
 
 export default router;

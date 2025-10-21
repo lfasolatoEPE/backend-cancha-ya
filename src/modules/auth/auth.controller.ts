@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
+import { isDuplicateError } from '../../utils/db';
 
 export class AuthController {
   constructor(private service: AuthService) {}
@@ -12,7 +13,12 @@ export class AuthController {
       const out = await this.service.register({ nombre, apellido, email, password });
       res.status(201).json(out);
     } catch (e: any) {
-      res.status(400).json({ error: e.message });
+      const msg = String(e?.message ?? 'Error en registro');
+      if (msg.includes('registrado') || isDuplicateError(e)) {
+        res.status(409).json({ error: msg }); // duplicado
+      } else {
+        res.status(400).json({ error: msg });
+      }
     }
   };
 

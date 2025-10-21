@@ -1,23 +1,19 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  OneToOne,
-  JoinColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
+  Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToOne,
+  JoinColumn, CreateDateColumn, UpdateDateColumn
 } from 'typeorm';
 import { Persona } from './Persona.entity';
 import { Rol } from './Rol.entity';
 import { PerfilCompetitivo } from './PerfilCompetitivo.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity()
 export class Usuario {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column()
+  @Column({ select: false })
+  @Exclude()
   passwordHash!: string;
 
   @Column({ default: true })
@@ -34,7 +30,6 @@ export class Usuario {
   @OneToOne(() => PerfilCompetitivo, (perfil) => perfil.usuario)
   perfilCompetitivo!: PerfilCompetitivo;
 
-  // Auditoría de login/seguridad
   @Column({ type: 'int', default: 0 })
   failedLoginAttempts!: number;
 
