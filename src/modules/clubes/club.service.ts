@@ -12,6 +12,27 @@ export class ClubService {
     return await repo.save(nuevo);
   }
 
+  async actualizar(
+    id: string,
+    data: Partial<{ nombre: string; direccion: string; telefono: string; email: string }>
+  ) {
+    const club = await repo.findOneBy({ id });
+    if (!club) throw new Error('Club no encontrado');
+
+    // Validar duplicado por email
+    if (data.email && data.email !== club.email) {
+      const dup = await repo.findOne({ where: { email: data.email } });
+      if (dup && dup.id !== club.id) throw new Error('Ya existe un club con ese email');
+      club.email = data.email;
+    }
+
+    if (data.nombre !== undefined) club.nombre = data.nombre;
+    if (data.direccion !== undefined) club.direccion = data.direccion;
+    if (data.telefono !== undefined) club.telefono = data.telefono;
+
+    return await repo.save(club);
+  }
+
   async listar() {
     return await repo.find({ order: { nombre: 'ASC' } });
   }
@@ -19,7 +40,7 @@ export class ClubService {
   async obtenerPorId(id: string) {
     const club = await repo.findOne({
       where: { id },
-      relations: ['canchas']
+      relations: ['canchas'],
     });
     if (!club) throw new Error('Club no encontrado');
     return club;

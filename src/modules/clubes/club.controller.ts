@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { ClubService } from './club.service';
 import { CrearClubDto } from './dto/crear-club.dto';
+import { UpdateClubDto } from './dto/update-club.dto';
 
 export class ClubController {
   constructor(private service: ClubService) {}
@@ -10,6 +11,16 @@ export class ClubController {
       const dto = req.body as CrearClubDto;
       const club = await this.service.crear(dto);
       res.status(201).json(club);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  };
+
+  actualizar = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const dto = req.body as UpdateClubDto;
+      const club = await this.service.actualizar(req.params.id, dto);
+      res.json(club);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }

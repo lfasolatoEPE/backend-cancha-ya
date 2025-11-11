@@ -16,6 +16,14 @@ export class PersonaController {
 
   obtener = async (req: Request, res: Response): Promise<void> => {
     try {
+      const token = (req as any).user;
+      const isAdmin = token?.rol === 'admin';
+      const isOwner = token?.personaId === req.params.id;
+      if (!isAdmin && !isOwner) {
+        res.status(403).json({ error: 'No tienes permiso para ver esta persona' });
+        return;
+      }
+
       const persona = await this.service.obtenerPorId(req.params.id);
       res.json(persona);
     } catch (error: any) {
@@ -25,7 +33,6 @@ export class PersonaController {
 
   actualizar = async (req: Request, res: Response): Promise<void> => {
     try {
-      // 💡 sólo admin o el dueño (personaId del token)
       const token = (req as any).user;
       const isAdmin = token?.rol === 'admin';
       const isOwner = token?.personaId === req.params.id;
@@ -34,7 +41,8 @@ export class PersonaController {
         return;
       }
 
-      const persona = await this.service.actualizar(req.params.id, req.body as ActualizarPersonaDto);
+      const dto = req.body as ActualizarPersonaDto;
+      const persona = await this.service.actualizar(req.params.id, dto);
       res.json(persona);
     } catch (error: any) {
       const msg = String(error?.message ?? 'Error');
