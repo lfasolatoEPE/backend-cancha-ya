@@ -18,10 +18,11 @@ router.get('/top-jugadores', controller.topJugadores);
 router.get('/canchas-mas-usadas', controller.canchasMasUsadas);
 router.get('/personas-con-deuda', controller.personasConDeuda);
 
-// NUEVOS
-router.get('/reservas/aggregate', validateDto(RangeDto), controller.aggregates);
-router.get('/reservas/drilldown', validateDto(RangeDto), controller.drilldown);
-router.get('/ocupacion', validateDto(RangeDto), controller.ocupacion);
-router.get('/reservas/heatmap', validateDto(RangeDto), controller.heatmap);
+// NUEVOS (sin class-validator)
+router.get('/reservas/aggregate', controller.aggregates);
+router.get('/reservas/drilldown', controller.drilldown);
+router.get('/ocupacion', controller.ocupacion);
+router.get('/reservas/heatmap', controller.heatmap);
+
 
 export default router;
