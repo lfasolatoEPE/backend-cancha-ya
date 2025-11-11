@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { CanchaService } from './cancha.service';
 import { CrearCanchaDto } from './dto/crear-cancha.dto';
+import { UpdateCanchaDto } from './dto/update-cancha.dto';
 
 export class CanchaController {
   constructor(private service: CanchaService) {}
@@ -12,6 +13,17 @@ export class CanchaController {
       res.status(201).json(cancha);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
+    }
+  };
+
+  actualizar = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const dto = req.body as UpdateCanchaDto;
+      const cancha = await this.service.actualizar(req.params.id, dto);
+      res.json(cancha);
+    } catch (error: any) {
+      const code = /no encontrada|no encontrado|existe/.test(error.message) ? 400 : 500;
+      res.status(code).json({ error: error.message });
     }
   };
 

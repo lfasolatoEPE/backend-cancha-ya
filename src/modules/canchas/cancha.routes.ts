@@ -3,6 +3,7 @@ import { CanchaController } from './cancha.controller';
 import { CanchaService } from './cancha.service';
 import { validateDto } from '../../utils/validate';
 import { CrearCanchaDto } from './dto/crear-cancha.dto';
+import { UpdateCanchaDto } from './dto/update-cancha.dto';
 import { authMiddleware } from '../../middlewares/auth.middleware';
 import { authorizeRoles } from '../../middlewares/role.middleware';
 
@@ -15,6 +16,14 @@ router.post(
   authorizeRoles('admin'),
   validateDto(CrearCanchaDto),
   controller.crear
+);
+
+router.put(
+  '/:id',
+  authMiddleware,
+  authorizeRoles('admin'),
+  validateDto(UpdateCanchaDto),      // ← validación parcial
+  controller.actualizar
 );
 
 router.get('/', controller.listar);

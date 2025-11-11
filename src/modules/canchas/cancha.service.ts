@@ -23,7 +23,6 @@ export class CanchaService {
     const deporte = await deporteRepo.findOneBy({ id: data.deporteId });
     if (!deporte) throw new Error('Deporte no encontrado');
 
-    // (opcional) evitar nombre duplicado por club
     const dup = await canchaRepo.findOne({ where: { nombre: data.nombre, club: { id: data.clubId } } as any });
     if (dup) throw new Error('Ya existe una cancha con ese nombre en el club');
 
@@ -35,6 +34,63 @@ export class CanchaService {
       club,
       deporte,
     });
+
+    try {
+      return await canchaRepo.save(cancha);
+    } catch (err) {
+      if (isDuplicateError(err)) throw new Error('Cancha duplicada');
+      throw err;
+    }
+  }
+
+  async actualizar(
+    id: string,
+    data: Partial<{
+      nombre: string;
+      ubicacion: string;
+      precioPorHora: number;
+      tipoSuperficie: string;
+      clubId: string;
+      deporteId: string;
+    }>
+  ) {
+    const cancha = await canchaRepo.findOne({
+      where: { id },
+      relations: ['club', 'deporte'],
+    });
+    if (!cancha) throw new Error('Cancha no encontrada');
+
+    // Si viene cambio de club, cargar el nuevo
+    if (data.clubId && data.clubId !== cancha.club?.id) {
+      const club = await clubRepo.findOneBy({ id: data.clubId });
+      if (!club) throw new Error('Club no encontrado');
+      cancha.club = club;
+    }
+
+    // Si viene cambio de deporte, cargar el nuevo
+    if (data.deporteId && data.deporteId !== cancha.deporte?.id) {
+      const deporte = await deporteRepo.findOneBy({ id: data.deporteId });
+      if (!deporte) throw new Error('Deporte no encontrado');
+      cancha.deporte = deporte;
+    }
+
+    // Si cambian nombre o (implícitamente) club, validar duplicado por club
+    const nombreDestino = data.nombre ?? cancha.nombre;
+    const clubDestinoId = cancha.club?.id;
+    if (nombreDestino && clubDestinoId) {
+      const dup = await canchaRepo.findOne({
+        where: { nombre: nombreDestino, club: { id: clubDestinoId } } as any,
+      });
+      if (dup && dup.id !== cancha.id) {
+        throw new Error('Ya existe una cancha con ese nombre en el club');
+      }
+    }
+
+    // Merge de campos simples
+    if (data.nombre !== undefined) cancha.nombre = data.nombre;
+    if (data.ubicacion !== undefined) cancha.ubicacion = data.ubicacion;
+    if (data.precioPorHora !== undefined) cancha.precioPorHora = Number(data.precioPorHora);
+    if (data.tipoSuperficie !== undefined) cancha.tipoSuperficie = data.tipoSuperficie;
 
     try {
       return await canchaRepo.save(cancha);
