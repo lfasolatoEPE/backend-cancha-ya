@@ -88,7 +88,7 @@ export class AdminService {
   // ——— NUEVOS ———
   private bucketExpr(granularity: Range['granularity'], tz: string) {
     const g = granularity || 'day';
-    const expr = `date_trunc('${g}','reserva."fechaHora" AT TIME ZONE :tz')`;
+    const expr = `date_trunc('${g}', reserva."fechaHora" AT TIME ZONE :tz)`;
     return { g, expr };
   }
 
@@ -166,7 +166,7 @@ export class AdminService {
       params.canchaId = canchaId;
       where += ' AND cancha.id = :canchaId';
       // Detalle día → cantidad (podés devolver reservas individuales si preferís)
-      const expr = `date_trunc('day','reserva."fechaHora" AT TIME ZONE :tz')`;
+      const expr = `date_trunc('day', reserva."fechaHora" AT TIME ZONE :tz)`;
       const rows = await reservaRepo.createQueryBuilder('reserva')
         .leftJoin('reserva.disponibilidad','disp')
         .leftJoin('disp.cancha','cancha')
