@@ -1,7 +1,10 @@
 import { AppDataSource } from '../../database/data-source';
 import { Club } from '../../entities/Club.entity';
+import { Cancha } from '../../entities/Cancha.entity';
+import { In } from 'typeorm';
 
 const repo = AppDataSource.getRepository(Club);
+const canchaRepo = AppDataSource.getRepository(Cancha);
 
 export class ClubService {
   async crear(data: { nombre: string; direccion: string; telefono: string; email: string }) {
@@ -19,7 +22,6 @@ export class ClubService {
     const club = await repo.findOneBy({ id });
     if (!club) throw new Error('Club no encontrado');
 
-    // Validar duplicado por email
     if (data.email && data.email !== club.email) {
       const dup = await repo.findOne({ where: { email: data.email } });
       if (dup && dup.id !== club.id) throw new Error('Ya existe un club con ese email');
@@ -44,5 +46,17 @@ export class ClubService {
     });
     if (!club) throw new Error('Club no encontrado');
     return club;
+  }
+
+  // ✅ NUEVO: devuelve sólo los IDs de canchas pertenecientes a varios clubes
+  async obtenerCanchasIdsPorClubes(clubIds: string[]): Promise<string[]> {
+    if (!clubIds?.length) throw new Error('clubIds no puede ser vacío');
+
+    const canchas = await canchaRepo.find({
+      select: ['id'],
+      where: { club: { id: In(clubIds) } as any },
+    });
+
+    return canchas.map(c => c.id);
   }
 }
