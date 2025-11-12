@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { CanchaService } from './cancha.service';
 import { CrearCanchaDto } from './dto/crear-cancha.dto';
 import { UpdateCanchaDto } from './dto/update-cancha.dto';
+import { uploadImageBuffer } from '../../services/image.service';
 
 export class CanchaController {
   constructor(private service: CanchaService) {}
@@ -47,6 +48,39 @@ export class CanchaController {
       res.json(canchas);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
+    }
+  };
+
+  subirFoto = async (req: any, res: any) => {
+    try {
+      const canchaId = req.params.id;
+      if (!req.file) {
+        res.status(400).json({ error: 'Falta archivo (file)' });
+        return;
+      }
+      const { url } = await uploadImageBuffer(req.file.buffer, `${process.env.CLOUDINARY_FOLDER}/canchas/${canchaId}`);
+      const foto = await this.service.agregarFoto(canchaId, url);
+      res.status(201).json(foto);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  };
+
+  listarFotos = async (req: any, res: any) => {
+    try {
+      const out = await this.service.listarFotos(req.params.id);
+      res.json(out);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  };
+
+  eliminarFoto = async (req: any, res: any) => {
+    try {
+      await this.service.eliminarFoto(req.params.id, req.params.fotoId);
+      res.json({ mensaje: 'Foto eliminada' });
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
     }
   };
 }

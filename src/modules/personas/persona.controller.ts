@@ -4,6 +4,7 @@ import { ActualizarPersonaDto } from './dto/actualizar-persona.dto';
 import { AppDataSource } from '../../database/data-source';
 import { Persona } from '../../entities/Persona.entity';
 import { isDuplicateError } from '../../utils/db';
+import { uploadImageBuffer } from '../../services/image.service';
 
 export class PersonaController {
   private repo = AppDataSource.getRepository(Persona);
@@ -80,6 +81,29 @@ export class PersonaController {
         .getMany();
 
       res.json(personas);
+    } catch (e: any) {
+      res.status(400).json({ error: e.message });
+    }
+  };
+
+  subirAvatar = async (req: any, res: any) => {
+    try {
+      const personaId = req.params.id;
+      const token = req.user;
+      const isAdmin = token?.rol === 'admin';
+      const isOwner = token?.personaId === personaId;
+      if (!isAdmin && !isOwner) {
+        res.status(403).json({ error: 'No tienes permiso' });
+        return;
+      }
+      if (!req.file) {
+        res.status(400).json({ error: 'Falta archivo (file)' });
+        return;
+      }
+
+      const { url } = await uploadImageBuffer(req.file.buffer, `${process.env.CLOUDINARY_FOLDER}/avatars`);
+      const updated = await this.service.actualizar(personaId, { avatarUrl: url });
+      res.json({ avatarUrl: url, persona: updated });
     } catch (e: any) {
       res.status(400).json({ error: e.message });
     }

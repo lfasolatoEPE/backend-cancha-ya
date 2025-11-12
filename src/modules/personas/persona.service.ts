@@ -15,29 +15,19 @@ export class PersonaService {
     return persona;
   }
 
-  async actualizar(id: string, data: { nombre?: string; apellido?: string; email?: string }) {
+  async actualizar(id: string, data: { nombre?: string; apellido?: string; email?: string; avatarUrl?: string }) {
     const persona = await repo.findOneBy({ id });
     if (!persona) throw new Error('Persona no encontrada');
 
-    if (data.nombre !== undefined) persona.nombre = data.nombre?.trim() || persona.nombre;
-    if (data.apellido !== undefined) persona.apellido = data.apellido?.trim() || persona.apellido;
-
-    if (data.email !== undefined) {
-      const normalized = normEmail(data.email);
-      if (!normalized) throw new Error('Email inválido');
-      if (normalized !== persona.email) {
-        const dup = await repo.findOne({ where: { email: normalized } });
-        if (dup && dup.id !== persona.id) throw new Error('El email ya está registrado');
-        persona.email = normalized;
-      }
-    }
+    if (data.nombre !== undefined) persona.nombre = data.nombre;
+    if (data.apellido !== undefined) persona.apellido = data.apellido;
+    if (data.email !== undefined) persona.email = normEmail(data.email);
+    if (data.avatarUrl !== undefined) persona.avatarUrl = data.avatarUrl;
 
     try {
       return await repo.save(persona);
     } catch (err) {
-      if (isDuplicateError(err)) {
-        throw new Error('El email ya está registrado');
-      }
+      if (isDuplicateError(err)) throw new Error('El email ya está registrado');
       throw err;
     }
   }

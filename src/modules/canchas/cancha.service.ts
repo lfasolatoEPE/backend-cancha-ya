@@ -1,5 +1,6 @@
 import { AppDataSource } from '../../database/data-source';
 import { Cancha } from '../../entities/Cancha.entity';
+import { CanchaFoto } from '../../entities/CanchaFoto.entity';
 import { Club } from '../../entities/Club.entity';
 import { Deporte } from '../../entities/Deporte.entity';
 import { isDuplicateError } from '../../utils/db';
@@ -7,6 +8,7 @@ import { isDuplicateError } from '../../utils/db';
 const canchaRepo = AppDataSource.getRepository(Cancha);
 const clubRepo = AppDataSource.getRepository(Club);
 const deporteRepo = AppDataSource.getRepository(Deporte);
+const fotoRepo = AppDataSource.getRepository(CanchaFoto);
 
 export class CanchaService {
   async crear(data: {
@@ -125,5 +127,36 @@ export class CanchaService {
       relations: ['deporte'],
       order: { nombre: 'ASC' },
     });
+  }
+
+  async agregarFoto(canchaId: string, url: string) {
+    const cancha = await canchaRepo.findOneBy({ id: canchaId });
+    if (!cancha) throw new Error('Cancha no encontrada');
+
+    const last = await fotoRepo.find({
+      where: { cancha: { id: canchaId } as any },
+      order: { orden: 'DESC' },
+      take: 1
+    });
+    const nextOrden = last[0]?.orden ? last[0].orden + 1 : 1;
+
+    const ent = fotoRepo.create({ cancha, url, orden: nextOrden });
+    return await fotoRepo.save(ent);
+  }
+
+  async listarFotos(canchaId: string) {
+    return await fotoRepo.find({
+      where: { cancha: { id: canchaId } as any },
+      order: { orden: 'ASC', creadaEl: 'ASC' }
+    });
+  }
+
+  async eliminarFoto(canchaId: string, fotoId: string) {
+    const foto = await fotoRepo.findOne({
+      where: { id: fotoId },
+      relations: ['cancha']
+    });
+    if (!foto || foto.cancha.id !== canchaId) throw new Error('Foto no encontrada');
+    await fotoRepo.remove(foto);
   }
 }

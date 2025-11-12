@@ -13,4 +13,7 @@ export class Persona {
 
   @Column({ unique: true })
   email!: string;
+
+  @Column({ type: 'text', nullable: true })
+  avatarUrl?: string;
 }

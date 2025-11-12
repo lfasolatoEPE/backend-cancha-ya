@@ -5,6 +5,7 @@ import { authMiddleware } from '../../middlewares/auth.middleware';
 import { validateDto } from '../../utils/validate';
 import { ActualizarPersonaDto } from './dto/actualizar-persona.dto';
 import { authorizeRoles } from '../../middlewares/role.middleware';
+import { upload } from '../../middlewares/upload.middleware';
 
 const router = Router();
 const controller = new PersonaController(new PersonaService());
@@ -26,5 +27,12 @@ router.patch('/:id', authMiddleware, validateDto(ActualizarPersonaDto), controll
 
 // admin: eliminar persona
 router.delete('/:id', authMiddleware, authorizeRoles('admin'), controller.eliminar);
+
+router.post(
+  '/:id/avatar',
+  authMiddleware,
+  upload.single('file'),
+  controller.subirAvatar
+);
 
 export default router;
