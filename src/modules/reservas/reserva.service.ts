@@ -89,6 +89,94 @@ export class ReservaService {
     });
   }
 
+  // 🔄 NUEVO: actualizar una reserva pendiente
+  async actualizarReserva(
+    id: string,
+    dto: { disponibilidadId?: string; fechaHora?: string },
+    usuarioId: string
+  ) {
+    const reservaRepo = AppDataSource.getRepository(Reserva);
+    const usuarioRepo = AppDataSource.getRepository(Usuario);
+    const disponibilidadRepo = AppDataSource.getRepository(DisponibilidadHorario);
+
+    const reserva = await reservaRepo.findOne({
+      where: { id },
+      relations: ['persona', 'disponibilidad', 'disponibilidad.cancha', 'disponibilidad.horario'],
+    });
+    if (!reserva) throw new Error('Reserva no encontrada');
+
+    // Solo reservas pendientes se pueden modificar
+    if (reserva.estado !== EstadoReserva.Pendiente) {
+      throw new Error('Solo se pueden modificar reservas pendientes');
+    }
+
+    // permisos: admin o dueño
+    const user = await usuarioRepo.findOne({ where: { id: usuarioId }, relations: ['rol', 'persona'] });
+    const isAdmin = user?.rol?.nombre === 'admin';
+    const isOwner = user?.persona?.id === reserva.persona.id;
+    if (!isAdmin && !isOwner) {
+      throw new Error('No tienes permiso para modificar esta reserva');
+    }
+
+    // Tomamos disponibilidad y fecha actuales como base
+    const nuevaDisponibilidadId = dto.disponibilidadId ?? reserva.disponibilidad.id;
+
+    const disponibilidad = await disponibilidadRepo.findOne({
+      where: { id: nuevaDisponibilidadId },
+      relations: ['cancha', 'horario'],
+    });
+    if (!disponibilidad) throw new Error('Disponibilidad no encontrada');
+    if (!disponibilidad.disponible) throw new Error('El horario está marcado como no disponible');
+
+    // Fecha: si no viene, usamos la actual de la reserva
+    const fechaBaseISO =
+      dto.fechaHora ??
+      DateTime.fromJSDate(reserva.fechaHora, { zone: 'America/Argentina/Cordoba' }).toISO();
+
+    const fecha = DateTime.fromISO(fechaBaseISO!, { zone: 'America/Argentina/Cordoba' });
+    if (!fecha.isValid) throw new Error('fechaHora inválida');
+
+    const diaSemana = fecha.weekday % 7;
+    if (disponibilidad.diaSemana !== diaSemana) {
+      throw new Error('La disponibilidad no corresponde al día de la semana de la fecha seleccionada');
+    }
+
+    const hi = disponibilidad.horario.horaInicio;
+    const hhmm = fecha.toFormat('HH:mm');
+    if (hhmm !== hi) {
+      throw new Error(`La reserva debe iniciar a las ${hi}`);
+    }
+
+    // Evitar doble booking (excluyendo la propia reserva)
+    const clash = await reservaRepo.findOne({
+      where: {
+        disponibilidad: { id: nuevaDisponibilidadId },
+        fechaHora: fecha.toJSDate(),
+      },
+    });
+
+    if (clash && clash.id !== reserva.id) {
+      throw new Error('Ya existe una reserva para esa cancha, fecha y horario');
+    }
+
+    // Aplicar cambios
+    reserva.disponibilidad = disponibilidad;
+    reserva.fechaHora = fecha.toJSDate();
+
+    const antes = reserva.fechaHora;
+    const actualizada = await reservaRepo.save(reserva);
+
+    await auditoriaService.registrar({
+      usuarioId,
+      accion: 'modificar_reserva',
+      descripcion: `Reserva modificada por ${reserva.persona.nombre} ${reserva.persona.apellido} en cancha ${disponibilidad.cancha.nombre}`,
+      entidad: 'reserva',
+      entidadId: actualizada.id,
+    });
+
+    return actualizada;
+  }
+
   async confirmarReserva(id: string, usuarioId: string) {
     const reservaRepo = AppDataSource.getRepository(Reserva);
     const usuarioRepo = AppDataSource.getRepository(Usuario);
