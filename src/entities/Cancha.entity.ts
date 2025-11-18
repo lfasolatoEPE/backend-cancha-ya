@@ -11,8 +11,16 @@ export class Cancha {
   @Column()
   nombre!: string;
 
+  // Dirección escrita (ej: "Av. Siempre Viva 123, Santa Fe")
   @Column()
   ubicacion!: string;
+
+  // Coordenadas para mapa (WGS84: lat/lon)
+  @Column('decimal', { precision: 10, scale: 7, nullable: true })
+  latitud!: number | null;
+
+  @Column('decimal', { precision: 10, scale: 7, nullable: true })
+  longitud!: number | null;
 
   @Column('decimal', { precision: 10, scale: 2 })
   precioPorHora!: number;

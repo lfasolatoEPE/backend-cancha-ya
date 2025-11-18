@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsNumber, Min, IsUUID } from 'class-validator';
+import { IsOptional, IsString, IsNumber, Min, Max, IsUUID } from 'class-validator';
 
 export class UpdateCanchaDto {
   @IsOptional()
@@ -8,6 +8,19 @@ export class UpdateCanchaDto {
   @IsOptional()
   @IsString()
   ubicacion?: string;
+
+  // Coordenadas opcionales
+  @IsOptional()
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  latitud?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  longitud?: number | null;
 
   @IsOptional()
   @IsNumber()

@@ -14,6 +14,8 @@ export class CanchaService {
   async crear(data: {
     nombre: string;
     ubicacion: string;
+    latitud?: number | null;
+    longitud?: number | null;
     precioPorHora: number;
     tipoSuperficie: string;
     clubId: string;
@@ -25,13 +27,17 @@ export class CanchaService {
     const deporte = await deporteRepo.findOneBy({ id: data.deporteId });
     if (!deporte) throw new Error('Deporte no encontrado');
 
-    const dup = await canchaRepo.findOne({ where: { nombre: data.nombre, club: { id: data.clubId } } as any });
+    const dup = await canchaRepo.findOne({
+      where: { nombre: data.nombre, club: { id: data.clubId } } as any,
+    });
     if (dup) throw new Error('Ya existe una cancha con ese nombre en el club');
 
     const cancha = canchaRepo.create({
       nombre: data.nombre,
       ubicacion: data.ubicacion,
-      precioPorHora: data.precioPorHora,
+      latitud: data.latitud ?? null,
+      longitud: data.longitud ?? null,
+      precioPorHora: Number(data.precioPorHora),
       tipoSuperficie: data.tipoSuperficie,
       club,
       deporte,
@@ -50,6 +56,8 @@ export class CanchaService {
     data: Partial<{
       nombre: string;
       ubicacion: string;
+      latitud: number | null;
+      longitud: number | null;
       precioPorHora: number;
       tipoSuperficie: string;
       clubId: string;
@@ -62,21 +70,21 @@ export class CanchaService {
     });
     if (!cancha) throw new Error('Cancha no encontrada');
 
-    // Si viene cambio de club, cargar el nuevo
+    // cambio de club
     if (data.clubId && data.clubId !== cancha.club?.id) {
       const club = await clubRepo.findOneBy({ id: data.clubId });
       if (!club) throw new Error('Club no encontrado');
       cancha.club = club;
     }
 
-    // Si viene cambio de deporte, cargar el nuevo
+    // cambio de deporte
     if (data.deporteId && data.deporteId !== cancha.deporte?.id) {
       const deporte = await deporteRepo.findOneBy({ id: data.deporteId });
       if (!deporte) throw new Error('Deporte no encontrado');
       cancha.deporte = deporte;
     }
 
-    // Si cambian nombre o (implícitamente) club, validar duplicado por club
+    // validar duplicado nombre+club
     const nombreDestino = data.nombre ?? cancha.nombre;
     const clubDestinoId = cancha.club?.id;
     if (nombreDestino && clubDestinoId) {
@@ -88,9 +96,11 @@ export class CanchaService {
       }
     }
 
-    // Merge de campos simples
+    // merge campos simples
     if (data.nombre !== undefined) cancha.nombre = data.nombre;
     if (data.ubicacion !== undefined) cancha.ubicacion = data.ubicacion;
+    if (data.latitud !== undefined) cancha.latitud = data.latitud;
+    if (data.longitud !== undefined) cancha.longitud = data.longitud;
     if (data.precioPorHora !== undefined) cancha.precioPorHora = Number(data.precioPorHora);
     if (data.tipoSuperficie !== undefined) cancha.tipoSuperficie = data.tipoSuperficie;
 
@@ -136,7 +146,7 @@ export class CanchaService {
     const last = await fotoRepo.find({
       where: { cancha: { id: canchaId } as any },
       order: { orden: 'DESC' },
-      take: 1
+      take: 1,
     });
     const nextOrden = last[0]?.orden ? last[0].orden + 1 : 1;
 
@@ -147,14 +157,14 @@ export class CanchaService {
   async listarFotos(canchaId: string) {
     return await fotoRepo.find({
       where: { cancha: { id: canchaId } as any },
-      order: { orden: 'ASC', creadaEl: 'ASC' }
+      order: { orden: 'ASC', creadaEl: 'ASC' },
     });
   }
 
   async eliminarFoto(canchaId: string, fotoId: string) {
     const foto = await fotoRepo.findOne({
       where: { id: fotoId },
-      relations: ['cancha']
+      relations: ['cancha'],
     });
     if (!foto || foto.cancha.id !== canchaId) throw new Error('Foto no encontrada');
     await fotoRepo.remove(foto);

@@ -58,7 +58,10 @@ export class CanchaController {
         res.status(400).json({ error: 'Falta archivo (file)' });
         return;
       }
-      const { url } = await uploadImageBuffer(req.file.buffer, `${process.env.CLOUDINARY_FOLDER}/canchas/${canchaId}`);
+      const { url } = await uploadImageBuffer(
+        req.file.buffer,
+        `${process.env.CLOUDINARY_FOLDER}/canchas/${canchaId}`
+      );
       const foto = await this.service.agregarFoto(canchaId, url);
       res.status(201).json(foto);
     } catch (e: any) {
