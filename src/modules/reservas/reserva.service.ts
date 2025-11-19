@@ -4,12 +4,8 @@ import { Persona } from '../../entities/Persona.entity';
 import { Deuda } from '../../entities/Deuda.entity';
 import { DisponibilidadHorario } from '../../entities/DisponibilidadHorario.entity';
 import { AuditoriaService } from '../auditoria/auditoria.service';
-
-import { NotifsService } from '../notifs/notifs.service';
-import { tplReservaCreada } from '../../templates/reserva-creada';
 import { DateTime } from 'luxon';
 import { Usuario } from '../../entities/Usuario.entity';
-import { EmailService } from '../../providers/email.service';
 
 const auditoriaService = new AuditoriaService();
 
@@ -36,37 +32,56 @@ export class ReservaService {
         relations: ['cancha', 'horario'],
       });
       if (!disponibilidad) throw new Error('Disponibilidad no encontrada');
-      if (!disponibilidad.disponible) throw new Error('El horario está marcado como no disponible');
+      if (!disponibilidad.disponible) {
+        throw new Error('El horario está marcado como no disponible');
+      }
 
       // Parseo horario con tz local AR (ajustá si querés UTC)
-      const fecha = DateTime.fromISO(fechaHora, { zone: 'America/Argentina/Cordoba' });
+      const fecha = DateTime.fromISO(fechaHora, {
+        zone: 'America/Argentina/Cordoba',
+      });
       if (!fecha.isValid) throw new Error('fechaHora inválida');
 
       const diaSemana = fecha.weekday % 7; // Luxon: 1=lun..7=dom → %7 hace dom=0
       if (disponibilidad.diaSemana !== diaSemana) {
-        throw new Error('La disponibilidad no corresponde al día de la semana de la fecha seleccionada');
+        throw new Error(
+          'La disponibilidad no corresponde al día de la semana de la fecha seleccionada',
+        );
       }
 
       // Validar que la hora encaje con el tramo
       const hi = disponibilidad.horario.horaInicio; // "18:00"
-      const hf = disponibilidad.horario.horaFin;    // "19:00"
       const hhmm = fecha.toFormat('HH:mm');
       if (hhmm !== hi) {
         throw new Error(`La reserva debe iniciar a las ${hi}`);
       }
 
       // Deudas impagas
-      const deudasImpagas = await deudaRepo.find({ where: { persona: { id: personaId }, pagada: false } });
+      const deudasImpagas = await deudaRepo.find({
+        where: { persona: { id: personaId }, pagada: false },
+      });
       if (deudasImpagas.length > 0) {
-        const total = deudasImpagas.reduce((sum, d) => sum + Number(d.monto), 0);
-        throw new Error(`La persona tiene ${deudasImpagas.length} deuda(s) pendiente(s) por un total de $${total.toFixed(2)}`);
+        const total = deudasImpagas.reduce(
+          (sum, d) => sum + Number(d.monto),
+          0,
+        );
+        throw new Error(
+          `La persona tiene ${deudasImpagas.length} deuda(s) pendiente(s) por un total de $${total.toFixed(
+            2,
+          )}`,
+        );
       }
 
       // Doble booking (misma disponibilidad y misma fecha)
       const clash = await reservaRepo.findOne({
-        where: { disponibilidad: { id: disponibilidadId }, fechaHora: fecha.toJSDate() },
+        where: {
+          disponibilidad: { id: disponibilidadId },
+          fechaHora: fecha.toJSDate(),
+        },
       });
-      if (clash) throw new Error('Ya existe una reserva para esa cancha, fecha y horario');
+      if (clash) {
+        throw new Error('Ya existe una reserva para esa cancha, fecha y horario');
+      }
 
       const reserva = reservaRepo.create({
         fechaHora: fecha.toJSDate(),
@@ -89,11 +104,11 @@ export class ReservaService {
     });
   }
 
-  // 🔄 NUEVO: actualizar una reserva pendiente
+  // 🔄 Actualizar una reserva pendiente (cambio de fecha/disponibilidad)
   async actualizarReserva(
     id: string,
     dto: { disponibilidadId?: string; fechaHora?: string },
-    usuarioId: string
+    usuarioId: string,
   ) {
     const reservaRepo = AppDataSource.getRepository(Reserva);
     const usuarioRepo = AppDataSource.getRepository(Usuario);
@@ -101,7 +116,12 @@ export class ReservaService {
 
     const reserva = await reservaRepo.findOne({
       where: { id },
-      relations: ['persona', 'disponibilidad', 'disponibilidad.cancha', 'disponibilidad.horario'],
+      relations: [
+        'persona',
+        'disponibilidad',
+        'disponibilidad.cancha',
+        'disponibilidad.horario',
+      ],
     });
     if (!reserva) throw new Error('Reserva no encontrada');
 
@@ -111,7 +131,10 @@ export class ReservaService {
     }
 
     // permisos: admin o dueño
-    const user = await usuarioRepo.findOne({ where: { id: usuarioId }, relations: ['rol', 'persona'] });
+    const user = await usuarioRepo.findOne({
+      where: { id: usuarioId },
+      relations: ['rol', 'persona'],
+    });
     const isAdmin = user?.rol?.nombre === 'admin';
     const isOwner = user?.persona?.id === reserva.persona.id;
     if (!isAdmin && !isOwner) {
@@ -119,26 +142,35 @@ export class ReservaService {
     }
 
     // Tomamos disponibilidad y fecha actuales como base
-    const nuevaDisponibilidadId = dto.disponibilidadId ?? reserva.disponibilidad.id;
+    const nuevaDisponibilidadId =
+      dto.disponibilidadId ?? reserva.disponibilidad.id;
 
     const disponibilidad = await disponibilidadRepo.findOne({
       where: { id: nuevaDisponibilidadId },
       relations: ['cancha', 'horario'],
     });
     if (!disponibilidad) throw new Error('Disponibilidad no encontrada');
-    if (!disponibilidad.disponible) throw new Error('El horario está marcado como no disponible');
+    if (!disponibilidad.disponible) {
+      throw new Error('El horario está marcado como no disponible');
+    }
 
     // Fecha: si no viene, usamos la actual de la reserva
     const fechaBaseISO =
       dto.fechaHora ??
-      DateTime.fromJSDate(reserva.fechaHora, { zone: 'America/Argentina/Cordoba' }).toISO();
+      DateTime.fromJSDate(reserva.fechaHora, {
+        zone: 'America/Argentina/Cordoba',
+      }).toISO();
 
-    const fecha = DateTime.fromISO(fechaBaseISO!, { zone: 'America/Argentina/Cordoba' });
+    const fecha = DateTime.fromISO(fechaBaseISO!, {
+      zone: 'America/Argentina/Cordoba',
+    });
     if (!fecha.isValid) throw new Error('fechaHora inválida');
 
     const diaSemana = fecha.weekday % 7;
     if (disponibilidad.diaSemana !== diaSemana) {
-      throw new Error('La disponibilidad no corresponde al día de la semana de la fecha seleccionada');
+      throw new Error(
+        'La disponibilidad no corresponde al día de la semana de la fecha seleccionada',
+      );
     }
 
     const hi = disponibilidad.horario.horaInicio;
@@ -163,7 +195,6 @@ export class ReservaService {
     reserva.disponibilidad = disponibilidad;
     reserva.fechaHora = fecha.toJSDate();
 
-    const antes = reserva.fechaHora;
     const actualizada = await reservaRepo.save(reserva);
 
     await auditoriaService.registrar({
@@ -208,41 +239,8 @@ export class ReservaService {
       entidadId: actualizada.id,
     });
 
-    // Notificaciones (igual a tu versión)
-    try {
-      const notifs = new NotifsService(AppDataSource);
-      const inicio = DateTime.fromJSDate(reserva.fechaHora, { zone: 'America/Argentina/Cordoba' });
-      const fechaHumana = inicio.toFormat("cccc dd 'de' LLLL 'a las' HH:mm");
-
-      const cancha = reserva.disponibilidad?.cancha?.nombre ?? 'Cancha';
-      const club = (reserva as any)?.disponibilidad?.cancha?.club?.nombre ?? 'Tu club';
-
-      const usuarioReserva = await usuarioRepo.findOne({
-        where: { persona: { id: reserva.persona.id } },
-        relations: ['persona'],
-      });
-
-      const tpl = tplReservaCreada({ fechaHumana, club, cancha });
-
-      if (usuarioReserva?.id) {
-        await notifs.sendEmailToUser(usuarioReserva.id, tpl.subject, tpl.html, tpl.text);
-        const inicioISO = inicio.toISO()!;
-        await notifs.scheduleReservaReminder(
-          usuarioReserva.id,
-          { reservaId: reserva.id, fechaISO: inicioISO, club, cancha },
-          inicio.minus({ hours: 24 }).toISO()!
-        );
-        await notifs.scheduleReservaReminder(
-          usuarioReserva.id,
-          { reservaId: reserva.id, fechaISO: inicioISO, club, cancha },
-          inicio.minus({ hours: 1 }).toISO()!
-        );
-      } else if (reserva.persona?.email) {
-        await EmailService.send({ to: reserva.persona.email, subject: tpl.subject, html: tpl.html, text: tpl.text });
-      }
-    } catch (err) {
-      console.error('❌ Error enviando notificaciones:', err);
-    }
+    // 🔕 Notificaciones por mail y recordatorios desactivados intencionalmente.
+    // Antes acá se llamaba a NotifsService y EmailService.
 
     return actualizada;
   }
@@ -258,7 +256,10 @@ export class ReservaService {
     if (!reserva) throw new Error('Reserva no encontrada');
 
     if (usuarioId) {
-      const user = await usuarioRepo.findOne({ where: { id: usuarioId }, relations: ['rol', 'persona'] });
+      const user = await usuarioRepo.findOne({
+        where: { id: usuarioId },
+        relations: ['rol', 'persona'],
+      });
       const isAdmin = user?.rol?.nombre === 'admin';
       const isOwner = user?.persona?.id === reserva.persona.id;
       if (!isAdmin && !isOwner) {
@@ -282,7 +283,12 @@ export class ReservaService {
 
   async obtenerTodas() {
     return await AppDataSource.getRepository(Reserva).find({
-      relations: ['persona', 'disponibilidad', 'disponibilidad.cancha', 'disponibilidad.horario'],
+      relations: [
+        'persona',
+        'disponibilidad',
+        'disponibilidad.cancha',
+        'disponibilidad.horario',
+      ],
       order: { fechaHora: 'DESC' },
     });
   }
@@ -290,7 +296,12 @@ export class ReservaService {
   async obtenerPorId(id: string) {
     const reserva = await AppDataSource.getRepository(Reserva).findOne({
       where: { id },
-      relations: ['persona', 'disponibilidad', 'disponibilidad.cancha', 'disponibilidad.horario'],
+      relations: [
+        'persona',
+        'disponibilidad',
+        'disponibilidad.cancha',
+        'disponibilidad.horario',
+      ],
     });
     if (!reserva) throw new Error('Reserva no encontrada');
     return reserva;

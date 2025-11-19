@@ -2,11 +2,20 @@ import nodemailer from 'nodemailer';
 import { Desafio } from '../entities/Desafio.entity';
 import { Persona } from '../entities/Persona.entity';
 
+// ──────────────────────────────────────────────
+// Flags de configuración
+// ──────────────────────────────────────────────
+
+// Si no existe, se asume "true" para no romper en local.
+// En producción (Railway) poné EMAIL_ENABLED=false para desactivar mails.
+const EMAIL_ENABLED = process.env.EMAIL_ENABLED !== 'false';
+
 // ───── Utils ENV (prioriza MAIL_* y cae a SMTP_*) ─────
 function env(...keys: string[]) {
   for (const k of keys) if (process.env[k]) return process.env[k]!;
   return undefined;
 }
+
 const HOST = env('MAIL_HOST', 'SMTP_HOST');
 const PORT = Number(env('MAIL_PORT', 'SMTP_PORT') ?? '587');
 const USER = env('MAIL_USER', 'SMTP_USER');
@@ -20,7 +29,9 @@ export type MailInput = { to: string; subject: string; html: string; text?: stri
 // Transport re-utilizable
 class _Mailer {
   transporter: nodemailer.Transporter | null;
+
   constructor() {
+    // Si no hay HOST configurado, no armamos transporter real
     this.transporter = HOST
       ? nodemailer.createTransport({
           host: HOST,
@@ -30,18 +41,33 @@ class _Mailer {
         })
       : null;
   }
+
   async send(input: MailInput) {
-    if (!this.transporter) {
-      // Dev: sin SMTP se imprime el contenido
-      console.log('[MAIL LOG]', { from: FROM, ...input });
+    // 🔴 Corte global: mails deshabilitados
+    if (!EMAIL_ENABLED) {
+      console.log('[EMAIL] disabled → send() no-op', {
+        to: input.to,
+        subject: input.subject,
+      });
       return;
     }
+
+    // Sin transporter real → logueamos el contenido (modo dev)
+    if (!this.transporter) {
+      console.log('[MAIL LOG - no transporter]', { from: FROM, ...input });
+      return;
+    }
+
     await this.transporter.sendMail({ from: FROM, ...input });
   }
+
   async sendBulk(items: MailInput[]) {
-    for (const it of items) await this.send(it);
+    for (const it of items) {
+      await this.send(it);
+    }
   }
 }
+
 const Mailer = new _Mailer();
 
 /**
@@ -53,6 +79,7 @@ export class EmailService {
   static async send(input: MailInput) {
     await Mailer.send(input);
   }
+
   static async sendBulk(items: MailInput[]) {
     await Mailer.sendBulk(items);
   }
@@ -64,11 +91,14 @@ export class EmailService {
     const fechaDia = fecha ? fecha.toLocaleDateString() : 'Fecha';
     const horaIni = desafio?.reserva?.disponibilidad?.horario?.horaInicio ?? '—';
     const horaFin = desafio?.reserva?.disponibilidad?.horario?.horaFin ?? '—';
-    const creadorNombre = `${desafio?.creador?.nombre ?? ''} ${desafio?.creador?.apellido ?? ''}`.trim();
+    const creadorNombre = `${desafio?.creador?.nombre ?? ''} ${
+      desafio?.creador?.apellido ?? ''
+    }`.trim();
 
     const subject = `⚽ Fuiste invitado a un desafío en CanchaYA`;
 
-    const mkText = (inv: Persona) => `
+    const mkText = (inv: Persona) =>
+      `
 Hola ${inv.nombre ?? ''} 👋,
 
 Fuiste invitado a un desafío en la cancha "${cancha}".
@@ -83,7 +113,8 @@ Ingresá a la app para aceptar o rechazar el desafío.
 ¡Suerte!
 Equipo CanchaYA`.trim();
 
-    const mkHtml = (inv: Persona) => `
+    const mkHtml = (inv: Persona) =>
+      `
 <div>
   <p>Hola ${inv.nombre ?? ''} 👋,</p>
   <p>Fuiste invitado a un desafío en la cancha "<b>${cancha}</b>".</p>
@@ -99,12 +130,18 @@ Equipo CanchaYA`.trim();
 
     const items = (invitados ?? [])
       .filter((i) => !!i?.email)
-      .map((i) => ({ to: i.email!, subject, text: mkText(i), html: mkHtml(i) }));
+      .map((i) => ({
+        to: i.email!,
+        subject,
+        text: mkText(i),
+        html: mkHtml(i),
+      }));
 
     if (!items.length) {
       console.warn('⚠️ No hay invitados con email válido para enviar.');
       return;
     }
+
     await Mailer.sendBulk(items);
     console.log('📨 Invitaciones enviadas:', items.length);
   }

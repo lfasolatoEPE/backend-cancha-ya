@@ -6,7 +6,6 @@ import { Reserva } from '../../entities/Reserva.entity';
 import { PerfilCompetitivo } from '../../entities/PerfilCompetitivo.entity';
 import { Persona } from '../../entities/Persona.entity';
 import { Auditoria } from '../../entities/Auditoria.entity';
-import { EmailService } from '../../providers/email.service';
 import { EloHistory } from '../../entities/EloHistory.entity';
 
 const desafioRepo = AppDataSource.getRepository(Desafio);
@@ -77,10 +76,8 @@ export class DesafioService {
       })
     );
 
-    // Emails asincrónicos (no bloquea la respuesta HTTP)
-    EmailService.enviarInvitacionesDesafio(creado, invitados).catch(err =>
-      console.error('❌ Error al enviar mails:', err)
-    );
+    // 🔕 Notificaciones por mail desactivadas intencionalmente
+    // (antes se usaba EmailService.enviarInvitacionesDesafio)
 
     return creado;
   }
@@ -124,9 +121,8 @@ export class DesafioService {
       })
     );
 
-    EmailService.enviarAceptacionDesafio(actualizado, invitado).catch(err =>
-      console.error('❌ Error al enviar mail de aceptación:', err)
-    );
+    // 🔕 Notificación por mail al creador desactivada
+    // (antes se usaba EmailService.enviarAceptacionDesafio)
 
     return actualizado;
   }
