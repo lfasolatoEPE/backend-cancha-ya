@@ -7,6 +7,8 @@ import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
 import { authMiddleware } from '../../middlewares/auth.middleware';
 import { authorizeRoles } from '../../middlewares/role.middleware';
 import { CambiarRolDto } from './dto/cambiar-rol.dto';
+import { AppDataSource } from '../../database/data-source';
+import { Usuario } from '../../entities/Usuario.entity';
 
 const router = Router();
 const controller = new UsuarioController(new UsuarioService());
@@ -22,8 +24,29 @@ router.post(
 
 router.post(
   '/admin',
-  authMiddleware,
-  authorizeRoles('admin'),
+  async (req, res, next) => {
+    const allow = process.env.ALLOW_ADMIN_SETUP === 'true';
+
+    if (allow) {
+      const countAdmins = await AppDataSource.getRepository(Usuario)
+        .createQueryBuilder('u')
+        .leftJoin('u.rol', 'r')
+        .where('r.nombre = :rol', { rol: 'admin' })
+        .getCount();
+
+      if (countAdmins === 0) {
+        console.warn('[ADMIN SETUP] Creación de admin sin auth habilitada');
+        return next();
+      }
+
+      console.warn('[ADMIN SETUP] Bandera ignorada — ya existe un admin, se exige auth');
+    }
+
+    // Caso general: auth requerida
+    return authMiddleware(req, res, () =>
+      authorizeRoles('admin')(req, res, next)
+    );
+  },
   validateDto(CrearUsuarioDto),
   controller.crearAdmin
 );
