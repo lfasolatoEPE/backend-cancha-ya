@@ -1,3 +1,4 @@
+// src/modules/cancha/cancha.routes.ts
 import { Router } from 'express';
 import { CanchaController } from './cancha.controller';
 import { CanchaService } from './cancha.service';
@@ -14,7 +15,7 @@ const controller = new CanchaController(new CanchaService());
 router.post(
   '/',
   authMiddleware,
-  authorizeRoles('admin'),
+  authorizeRoles('admin', 'admin-club'),
   validateDto(CrearCanchaDto),
   controller.crear
 );
@@ -22,8 +23,8 @@ router.post(
 router.put(
   '/:id',
   authMiddleware,
-  authorizeRoles('admin'),
-  validateDto(UpdateCanchaDto),      // ← validación parcial
+  authorizeRoles('admin', 'admin-club'),
+  validateDto(UpdateCanchaDto),
   controller.actualizar
 );
 
@@ -31,23 +32,20 @@ router.get('/', controller.listar);
 router.get('/:id', controller.obtener);
 router.get('/club/:clubId', controller.listarPorClub);
 
-// subir una foto
 router.post(
   '/:id/fotos',
   authMiddleware,
-  authorizeRoles('admin'),
+  authorizeRoles('admin', 'admin-club'),
   upload.single('file'),
   controller.subirFoto
 );
 
-// listar fotos
 router.get('/:id/fotos', controller.listarFotos);
 
-// eliminar foto
 router.delete(
   '/:id/fotos/:fotoId',
   authMiddleware,
-  authorizeRoles('admin'),
+  authorizeRoles('admin', 'admin-club'),
   controller.eliminarFoto
 );
 

@@ -1,3 +1,4 @@
+// src/modules/club/club.routes.ts
 import { Router } from 'express';
 import { ClubController } from './club.controller';
 import { ClubService } from './club.service';
@@ -11,7 +12,7 @@ import { authorizeRoles } from '../../middlewares/role.middleware';
 const router = Router();
 const controller = new ClubController(new ClubService());
 
-// 🔒 Solo admin puede crear o editar
+// Crear club → solo admin global
 router.post(
   '/',
   authMiddleware,
@@ -20,21 +21,22 @@ router.post(
   controller.crear
 );
 
+// Editar club → admin o admin-club (control interno por lista)
 router.put(
   '/:id',
   authMiddleware,
-  authorizeRoles('admin'),
+  authorizeRoles('admin', 'admin-club'),
   validateDto(UpdateClubDto),
   controller.actualizar
 );
 
+// listar público (todos los clubes)
 router.get('/', controller.listar);
-router.get('/:id', controller.obtener);
 
-// ✅ NUEVO: devolver IDs de canchas para una lista de clubes (POST con body { clubIds: [...] })
+// ver un club → opcionalmente restringido si viene token admin-club
+router.get('/:id', authMiddleware, authorizeRoles('admin', 'admin-club'), controller.obtener);
+
 router.post('/canchas/ids', validateDto(ClubIdsDto), controller.obtenerCanchasIdsPorClubes);
-
-// (Opcional) variante GET con query ?clubIds=uuid1,uuid2
 router.get('/canchas/ids', controller.obtenerCanchasIdsPorClubesQuery);
 
 export default router;

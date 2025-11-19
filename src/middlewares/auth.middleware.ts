@@ -1,35 +1,35 @@
-import { Request, Response, NextFunction } from 'express';
+// src/middlewares/auth.middleware.ts
+import { RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
-
-export interface JWTPayload {
-  id: string;
-  rol: string;
-  personaId: string;
-  email: string;
-  iat?: number;
-  exp?: number;
-}
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
-  // Mejor fallar temprano que validar con un secreto malo
   throw new Error('Falta JWT_SECRET en variables de entorno');
 }
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
-  const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : null;
+export const authMiddleware: RequestHandler = (req, res, next) => {
+  const header = req.headers.authorization || req.headers.Authorization;
+  const raw = typeof header === 'string' ? header : '';
 
+  const token = raw.startsWith('Bearer ') ? raw.slice(7) : null;
   if (!token) {
-    res.status(401).json({ error: 'Token no proporcionado' });
+    res.status(401).json({ error: 'Token requerido' });
     return;
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    (req as any).user = decoded;
+    const payload = jwt.verify(token, JWT_SECRET) as any;
+
+    (req as any).user = {
+      id: payload.sub ?? payload.id,        // por si algún token viejo tenía 'id'
+      personaId: payload.personaId,
+      email: payload.email,
+      rol: payload.rol,
+      clubIds: payload.clubIds ?? [],       // ⬅️ importante para admin-club
+    };
+
     next();
-  } catch {
-    res.status(401).json({ error: 'Token inválido' });
+  } catch (e) {
+    res.status(401).json({ error: 'Token inválido o expirado' });
   }
 };

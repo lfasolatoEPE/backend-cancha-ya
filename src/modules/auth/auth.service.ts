@@ -1,3 +1,4 @@
+// src/modules/auth/auth.service.ts
 import { AppDataSource } from '../../database/data-source';
 import { Usuario } from '../../entities/Usuario.entity';
 import { Persona } from '../../entities/Persona.entity';
@@ -22,13 +23,26 @@ const ACCESS_TTL_MIN = parseInt(process.env.JWT_ACCESS_MIN || '15', 10);
 const REFRESH_TTL_DAYS = parseInt(process.env.JWT_REFRESH_DAYS || '7', 10);
 
 export class AuthService {
+  /**
+   * Genera el access token JWT.
+   * Incluye:
+   * - sub        → id de usuario
+   * - rol        → 'admin' | 'admin-club' | 'usuario'
+   * - personaId  → id de Persona
+   * - email      → email de Persona
+   * - clubIds    → lista de clubes que administra (puede ser [])
+   */
   private signAccessToken(user: Usuario) {
+    const clubIds = (user.adminClubs ?? []).map((c) => c.id);
+
     const payload = {
-      id: user.id,
+      sub: user.id,
       rol: user.rol.nombre,
       personaId: user.persona.id,
       email: user.persona.email,
+      clubIds,
     };
+
     return jwt.sign(payload, JWT_SECRET!, { expiresIn: `${ACCESS_TTL_MIN}m` });
   }
 
@@ -45,14 +59,26 @@ export class AuthService {
         const existente = await personaRepoT.findOne({ where: { email } });
         if (existente) throw new Error('El email ya está registrado');
 
-        const persona = personaRepoT.create({ nombre: data.nombre, apellido: data.apellido, email });
+        const persona = personaRepoT.create({
+          nombre: data.nombre,
+          apellido: data.apellido,
+          email,
+        });
         await personaRepoT.save(persona);
 
         const passwordHash = await bcrypt.hash(data.password, 12);
-        const rolUsuario = await rolRepoT.findOne({ where: { nombre: 'usuario' } });
-        if (!rolUsuario) throw new Error('Rol base "usuario" no existe. Crear seed de roles.');
 
-        const usuario = usuarioRepoT.create({ passwordHash, persona, rol: rolUsuario, activo: true });
+        const rolUsuario = await rolRepoT.findOne({ where: { nombre: 'usuario' } });
+        if (!rolUsuario) {
+          throw new Error('Rol base "usuario" no existe. Crear seed de roles.');
+        }
+
+        const usuario = usuarioRepoT.create({
+          passwordHash,
+          persona,
+          rol: rolUsuario,
+          activo: true,
+        });
         await usuarioRepoT.save(usuario);
 
         const accessToken = this.signAccessToken(usuario);
@@ -75,7 +101,8 @@ export class AuthService {
       .createQueryBuilder('u')
       .leftJoinAndSelect('u.persona', 'p')
       .leftJoinAndSelect('u.rol', 'r')
-      .addSelect('u.passwordHash') // <- clave para usar bcrypt.compare
+      .leftJoinAndSelect('u.adminClubs', 'adminClubs') // ⬅️ importante para clubIds
+      .addSelect('u.passwordHash') // necesario para bcrypt.compare
       .where('LOWER(p.email) = :email', { email: emailN })
       .getOne();
 
@@ -106,7 +133,10 @@ export class AuthService {
     return row.token;
   }
 
-  private async issueRefreshTokenWithManager(user: Usuario, repo = refreshRepo) {
+  private async issueRefreshTokenWithManager(
+    user: Usuario,
+    repo = refreshRepo
+  ) {
     const token = cryptoRandomString(40);
     const expiresAt = add(new Date(), { days: REFRESH_TTL_DAYS });
     const row = repo.create({ user, token, expiresAt, revoked: false });
@@ -120,6 +150,7 @@ export class AuthService {
       .leftJoinAndSelect('rt.user', 'u')
       .leftJoinAndSelect('u.persona', 'p')
       .leftJoinAndSelect('u.rol', 'r')
+      .leftJoinAndSelect('u.adminClubs', 'adminClubs') // ⬅️ para regenerar clubIds en el nuevo token
       .where('rt.token = :tkn', { tkn: refreshToken })
       .andWhere('rt.revoked = false')
       .getOne();

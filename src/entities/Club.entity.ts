@@ -1,6 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+// src/entities/Club.entity.ts
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany } from 'typeorm';
 import { Cancha } from './Cancha.entity';
 import { Valoracion } from './Valoracion.entity';
+import { Usuario } from './Usuario.entity';
 
 @Entity()
 export class Club {
@@ -10,7 +12,6 @@ export class Club {
   @Column()
   nombre!: string;
 
-  // Dirección física del club (para mostrar y geocodificar)
   @Column()
   direccion!: string;
 
@@ -20,17 +21,20 @@ export class Club {
   @Column()
   email!: string;
 
-  // 🔹 Coordenadas del club (para mapa)
   @Column('decimal', { precision: 10, scale: 7, nullable: true })
   latitud!: number | null;
 
   @Column('decimal', { precision: 10, scale: 7, nullable: true })
   longitud!: number | null;
 
-  @OneToMany(() => Cancha, cancha => cancha.club)
+  @OneToMany(() => Cancha, (cancha) => cancha.club)
   canchas!: Cancha[];
 
-  // (si usás Valoracion)
-  // @OneToMany(() => Valoracion, v => v.club)
+  // ⬅️ NUEVO: usuarios que administran este club
+  @ManyToMany(() => Usuario, (user) => user.adminClubs)
+  adminUsers!: Usuario[];
+
+  // (si ya tenías Valoracion, mantenelo)
+  // @OneToMany(() => Valoracion, (v) => v.club)
   // valoraciones!: Valoracion[];
 }

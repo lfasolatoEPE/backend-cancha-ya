@@ -1,11 +1,21 @@
+// src/entities/Usuario.entity.ts
 import {
-  Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToOne,
-  JoinColumn, CreateDateColumn, UpdateDateColumn
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToOne,
+  ManyToMany,
+  JoinColumn,
+  JoinTable,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Persona } from './Persona.entity';
 import { Rol } from './Rol.entity';
 import { PerfilCompetitivo } from './PerfilCompetitivo.entity';
 import { Exclude } from 'class-transformer';
+import { Club } from './Club.entity'; // ⬅️ NUEVO
 
 @Entity()
 export class Usuario {
@@ -26,6 +36,15 @@ export class Usuario {
   @ManyToOne(() => Rol, { eager: true })
   @JoinColumn()
   rol!: Rol;
+
+  // ⬅️ NUEVO: clubes que administra (solo para rol 'admin-club')
+  @ManyToMany(() => Club, (club) => club.adminUsers, { eager: true })
+  @JoinTable({
+    name: 'usuario_admin_club',
+    joinColumn: { name: 'usuarioId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'clubId', referencedColumnName: 'id' },
+  })
+  adminClubs!: Club[];
 
   @OneToOne(() => PerfilCompetitivo, (perfil) => perfil.usuario)
   perfilCompetitivo!: PerfilCompetitivo;

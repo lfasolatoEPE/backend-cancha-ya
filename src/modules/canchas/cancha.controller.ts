@@ -1,3 +1,4 @@
+// src/modules/cancha/cancha.controller.ts
 import { Request, Response } from 'express';
 import { CanchaService } from './cancha.service';
 import { CrearCanchaDto } from './dto/crear-cancha.dto';
@@ -9,7 +10,17 @@ export class CanchaController {
 
   crear = async (req: Request, res: Response): Promise<void> => {
     try {
+      const token = (req as any).user;
       const dto = req.body as CrearCanchaDto;
+
+      if (token?.rol === 'admin-club') {
+        const clubIds: string[] = token.clubIds ?? [];
+        if (!clubIds.includes(dto.clubId)) {
+          res.status(403).json({ error: 'No puedes crear canchas en otros clubes' });
+          return;
+        }
+      }
+
       const cancha = await this.service.crear(dto);
       res.status(201).json(cancha);
     } catch (error: any) {
@@ -19,7 +30,22 @@ export class CanchaController {
 
   actualizar = async (req: Request, res: Response): Promise<void> => {
     try {
+      const token = (req as any).user;
       const dto = req.body as UpdateCanchaDto;
+
+      if (token?.rol === 'admin-club') {
+        const clubIds: string[] = token.clubIds ?? [];
+        // necesitamos saber a qué club pertenece la cancha
+        const canchaActual = await this.service.obtenerPorId(req.params.id);
+        const clubIdActual = canchaActual.club?.id;
+
+        const clubDestino = dto.clubId ?? clubIdActual;
+        if (!clubDestino || !clubIds.includes(clubDestino)) {
+          res.status(403).json({ error: 'No puedes modificar canchas de otros clubes' });
+          return;
+        }
+      }
+
       const cancha = await this.service.actualizar(req.params.id, dto);
       res.json(cancha);
     } catch (error: any) {

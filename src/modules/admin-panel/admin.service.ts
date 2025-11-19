@@ -1,6 +1,5 @@
 import { AppDataSource } from '../../database/data-source';
 import { Reserva } from '../../entities/Reserva.entity';
-import { DisponibilidadHorario } from '../../entities/DisponibilidadHorario.entity';
 import { Cancha } from '../../entities/Cancha.entity';
 import { Usuario } from '../../entities/Usuario.entity';
 import { Deuda } from '../../entities/Deuda.entity';
@@ -19,24 +18,97 @@ type Range = {
   clubId?: string; canchaId?: string; estado?: 'pendiente'|'confirmada'|'cancelada';
   by?: 'club'|'cancha';
   level?: 'club'|'cancha'|'detalle';
+  // 🔐 alcance de admin-club
+  clubIds?: string[];
 };
 
+type Scope = { clubIds?: string[] };
+
+function hasScopedClubs(clubIds?: string[]) {
+  return Array.isArray(clubIds) && clubIds.length > 0;
+}
+
 export class AdminService {
-  // ——— EXISTENTES ———
-  async obtenerResumenGeneral() {
-    const totalUsuarios = await usuarioRepo.count();
-    const totalReservas = await reservaRepo.count();
-    const totalCanchas  = await canchaRepo.count();
-    const { total } = await deudaRepo.createQueryBuilder('d')
-      .select('COALESCE(SUM(d.monto),0)','total')
-      .where('d.pagada = false')
+  // ————————————————— RESUMEN GENERAL —————————————————
+
+  async obtenerResumenGeneral({ clubIds }: Scope = {}) {
+    // Admin-club sin clubes asignados → todo en 0
+    if (clubIds && clubIds.length === 0) {
+      return {
+        totalUsuarios: 0,
+        totalReservas: 0,
+        totalCanchas: 0,
+        deudaTotalPendiente: 0,
+      };
+    }
+
+    // Admin global → métricas de toda la plataforma
+    if (!hasScopedClubs(clubIds)) {
+      const totalUsuarios = await usuarioRepo.count();
+      const totalReservas = await reservaRepo.count();
+      const totalCanchas  = await canchaRepo.count();
+      const { total } = await deudaRepo.createQueryBuilder('d')
+        .select('COALESCE(SUM(d.monto),0)','total')
+        .where('d.pagada = false')
+        .getRawOne();
+      return {
+        totalUsuarios,
+        totalReservas,
+        totalCanchas,
+        deudaTotalPendiente: Number(total),
+      };
+    }
+
+    // Admin-club → sólo info de sus clubes
+    // totalCanchas: canchas de esos clubes
+    const totalCanchas = await canchaRepo.createQueryBuilder('c')
+      .leftJoin('c.club','club')
+      .where('club.id IN (:...clubIds)', { clubIds })
+      .getCount();
+
+    // totalReservas y usuarios que reservaron en esos clubes
+    const reservasRows = await reservaRepo.createQueryBuilder('r')
+      .leftJoin('r.disponibilidad','d')
+      .leftJoin('d.cancha','c')
+      .leftJoin('c.club','club')
+      .leftJoin('r.persona','p')
+      .select('COUNT(r.id)','totalReservas')
+      .addSelect('COUNT(DISTINCT p.id)','totalPersonas')
+      .where('club.id IN (:...clubIds)', { clubIds })
       .getRawOne();
-    return { totalUsuarios, totalReservas, totalCanchas, deudaTotalPendiente: Number(total) };
+
+    const totalReservas = Number(reservasRows.totalReservas || 0);
+    const totalUsuarios = Number(reservasRows.totalPersonas || 0);
+
+    // deuda: de esas personas solamente
+    const deudaRow = await deudaRepo.createQueryBuilder('d')
+      .leftJoin('d.persona','p')
+      .where('d.pagada = false')
+      .andWhere('p.id IN ' +
+        reservaRepo.createQueryBuilder('r2')
+          .leftJoin('r2.disponibilidad','d2')
+          .leftJoin('d2.cancha','c2')
+          .leftJoin('c2.club','club2')
+          .select('r2."personaId"')
+          .where('club2.id IN (:...clubIds)', { clubIds })
+          .getQuery()
+      )
+      .setParameters({ clubIds })
+      .select('COALESCE(SUM(d.monto),0)','total')
+      .getRawOne();
+
+    return {
+      totalUsuarios,
+      totalReservas,
+      totalCanchas,
+      deudaTotalPendiente: Number(deudaRow.total || 0),
+    };
   }
 
-  async obtenerTopJugadores({ from, to, tz }: Range = {}) {
-    // Mantengo tu ranking pero filtro por rango si viene
-    // (si tu ranking depende de otro origen, dejalo igual y omití filtros)
+  // ————————————————— TOP JUGADORES —————————————————
+  // (por ahora sin filtro por club: ranking global)
+
+  async obtenerTopJugadores(_opts: Range = {}) {
     const qb = perfilRepo.createQueryBuilder('p')
       .leftJoinAndSelect('p.usuario','u')
       .leftJoinAndSelect('u.persona','per')
@@ -50,13 +122,28 @@ export class AdminService {
     }));
   }
 
-  async obtenerCanchasMasUsadas({ from, to, tz = 'America/Argentina/Cordoba', clubId }: Range = {}) {
-    // Conteo de reservas por cancha con rango y club opcional
+  // ————————————————— CANCHAS MÁS USADAS —————————————————
+
+  async obtenerCanchasMasUsadas({ from, to, tz = 'America/Argentina/Cordoba', clubId, clubIds }: Range = {}) {
     const params: any = { tz };
     let where = '1=1';
+
     if (from) { where += ' AND (reserva."fechaHora" AT TIME ZONE :tz) >= :from'; params.from = from; }
     if (to)   { where += ' AND (reserva."fechaHora" AT TIME ZONE :tz) <  :to';   params.to   = to; }
-    if (clubId) { where += ' AND club.id = :clubId'; params.clubId = clubId; }
+
+    // 🔐 filtro por club / clubIds
+    if (hasScopedClubs(clubIds)) {
+      if (clubId && clubIds!.includes(clubId)) {
+        where += ' AND club.id = :clubId';
+        params.clubId = clubId;
+      } else {
+        where += ' AND club.id IN (:...clubIds)';
+        params.clubIds = clubIds;
+      }
+    } else if (clubId) {
+      where += ' AND club.id = :clubId';
+      params.clubId = clubId;
+    }
 
     return await reservaRepo.createQueryBuilder('reserva')
       .leftJoin('reserva.disponibilidad','disp')
@@ -72,35 +159,85 @@ export class AdminService {
       .getRawMany();
   }
 
-  async obtenerPersonasConDeuda() {
-    return await deudaRepo.createQueryBuilder('d')
+  // ————————————————— PERSONAS CON DEUDA —————————————————
+
+  async obtenerPersonasConDeuda({ clubIds }: Scope = {}) {
+    if (!hasScopedClubs(clubIds)) {
+      // global
+      return await deudaRepo.createQueryBuilder('d')
+        .leftJoin('d.persona','p')
+        .select('p.id','personaId')
+        .addSelect('p.nombre','nombre')
+        .addSelect('p.email','email')
+        .addSelect('SUM(d.monto)','totalDeuda')
+        .where('d.pagada = false')
+        .groupBy('p.id')
+        .orderBy('"totalDeuda"','DESC')
+        .getRawMany();
+    }
+
+    // admin-club → sólo personas con reservas en sus clubes
+    const rows = await deudaRepo.createQueryBuilder('d')
       .leftJoin('d.persona','p')
+      .where('d.pagada = false')
+      .andWhere('p.id IN ' +
+        reservaRepo.createQueryBuilder('r2')
+          .leftJoin('r2.disponibilidad','d2')
+          .leftJoin('d2.cancha','c2')
+          .leftJoin('c2.club','club2')
+          .select('r2."personaId"')
+          .where('club2.id IN (:...clubIds)', { clubIds })
+          .getQuery()
+      )
+      .setParameters({ clubIds })
       .select('p.id','personaId')
       .addSelect('p.nombre','nombre')
       .addSelect('p.email','email')
       .addSelect('SUM(d.monto)','totalDeuda')
-      .where('d.pagada = false')
       .groupBy('p.id')
       .orderBy('"totalDeuda"','DESC')
       .getRawMany();
+
+    return rows;
   }
 
-  // ——— EXISTENTES REPORTES ———
+  // ————————————————— HELPERS REPORTES —————————————————
+
   private bucketExpr(granularity: Range['granularity'], tz: string) {
     const g = granularity || 'day';
     const expr = `date_trunc('${g}', reserva."fechaHora" AT TIME ZONE :tz)`;
     return { g, expr };
   }
 
-  async reservasAggregate({ from, to, tz = 'America/Argentina/Cordoba', granularity, clubId, canchaId, estado }: Range) {
+  // ————————————————— RESERVAS AGGREGATE —————————————————
+
+  async reservasAggregate({
+    from, to, tz = 'America/Argentina/Cordoba',
+    granularity, clubId, canchaId, estado, clubIds,
+  }: Range) {
     const { expr } = this.bucketExpr(granularity, tz);
     const params: any = { tz };
     let where = '1=1';
     if (from) { where += ` AND (reserva."fechaHora" AT TIME ZONE :tz) >= :from`; params.from = from; }
     if (to)   { where += ` AND (reserva."fechaHora" AT TIME ZONE :tz) <  :to`;   params.to   = to; }
-    if (clubId) { where += ' AND club.id = :clubId'; params.clubId = clubId; }
-    if (canchaId) { where += ' AND cancha.id = :canchaId'; params.canchaId = canchaId; }
     if (estado) { where += ' AND reserva.estado = :estado'; params.estado = estado; }
+
+    // club / cancha + alcance admin-club
+    if (hasScopedClubs(clubIds)) {
+      if (canchaId) {
+        where += ' AND cancha.id = :canchaId';
+        params.canchaId = canchaId;
+      } else if (clubId && clubIds!.includes(clubId)) {
+        where += ' AND club.id = :clubId';
+        params.clubId = clubId;
+      } else {
+        where += ' AND club.id IN (:...clubIds)';
+        params.clubIds = clubIds;
+      }
+    } else {
+      if (clubId) { where += ' AND club.id = :clubId'; params.clubId = clubId; }
+      if (canchaId) { where += ' AND cancha.id = :canchaId'; params.canchaId = canchaId; }
+    }
 
     const rows = await reservaRepo.createQueryBuilder('reserva')
       .leftJoin('reserva.disponibilidad','disp')
@@ -125,7 +262,13 @@ export class AdminService {
     }));
   }
 
-  async reservasDrilldown({ level = 'club', clubId, canchaId, from, to, tz = 'America/Argentina/Cordoba', estado }: Range) {
+  // ————————————————— DRILLDOWN —————————————————
+
+  async reservasDrilldown({
+    level = 'club', clubId, canchaId,
+    from, to, tz = 'America/Argentina/Cordoba',
+    estado, clubIds,
+  }: Range) {
     const params: any = { tz };
     let where = '1=1';
     if (from) { where += ` AND (reserva."fechaHora" AT TIME ZONE :tz) >= :from`; params.from = from; }
@@ -133,6 +276,10 @@ export class AdminService {
     if (estado) { where += ' AND reserva.estado = :estado'; params.estado = estado; }
 
     if (level === 'club') {
+      if (hasScopedClubs(clubIds)) {
+        where += ' AND club.id IN (:...clubIds)';
+        params.clubIds = clubIds;
+      }
       return await reservaRepo.createQueryBuilder('reserva')
         .leftJoin('reserva.disponibilidad','disp')
         .leftJoin('disp.cancha','cancha')
@@ -146,9 +293,20 @@ export class AdminService {
         .getRawMany();
     }
 
-    if (level === 'cancha' && clubId) {
-      params.clubId = clubId;
-      where += ' AND club.id = :clubId';
+    if (level === 'cancha') {
+      if (hasScopedClubs(clubIds)) {
+        if (clubId && clubIds!.includes(clubId)) {
+          where += ' AND club.id = :clubId';
+          params.clubId = clubId;
+        } else {
+          where += ' AND club.id IN (:...clubIds)';
+          params.clubIds = clubIds;
+        }
+      } else if (clubId) {
+        where += ' AND club.id = :clubId';
+        params.clubId = clubId;
+      }
+
       return await reservaRepo.createQueryBuilder('reserva')
         .leftJoin('reserva.disponibilidad','disp')
         .leftJoin('disp.cancha','cancha')
@@ -165,11 +323,12 @@ export class AdminService {
     if (level === 'detalle' && canchaId) {
       params.canchaId = canchaId;
       where += ' AND cancha.id = :canchaId';
-      // Detalle día → cantidad (podés devolver reservas individuales si preferís)
+
       const expr = `date_trunc('day', reserva."fechaHora" AT TIME ZONE :tz)`;
       const rows = await reservaRepo.createQueryBuilder('reserva')
         .leftJoin('reserva.disponibilidad','disp')
         .leftJoin('disp.cancha','cancha')
+        .leftJoin('cancha.club','club')
         .select(`${expr}`,'dia')
         .addSelect('COUNT(reserva.id)','reservas')
         .where(where, params)
@@ -177,18 +336,27 @@ export class AdminService {
         .orderBy('dia','ASC')
         .getRawMany();
 
-      return rows.map(r => ({ fecha: new Date(r.dia).toISOString().slice(0,10), reservas: Number(r.reservas) }));
+      return rows.map(r => ({
+        fecha: new Date(r.dia).toISOString().slice(0,10),
+        reservas: Number(r.reservas),
+      }));
     }
 
     throw new Error('Parámetros inválidos para drilldown');
   }
 
-  async ocupacion({ by='cancha', from, to, tz = 'America/Argentina/Cordoba' }: Range) {
-    // Ocupación = reservas_confirmadas / slots_disponibles_en_rango
-    const params: any = { tz };
-    let rango = '1=1';
-    if (from) { rango += ` AND d IS NOT NULL AND d >= :from`; params.from = from; }
-    if (to)   { rango += ` AND d IS NOT NULL AND d <  :to`;   params.to   = to; }
+  // ————————————————— OCUPACIÓN (POR CLUB / CANCHA) —————————————————
+
+  async ocupacion({ by='cancha', from, to, tz = 'America/Argentina/Cordoba', clubIds }: Range) {
+    const params: any = { tz, from: from ?? null, to: to ?? null };
+
+    // admin-club sin clubes → nada
+    if (clubIds && clubIds.length === 0) return [];
+
+    const filterClub =
+      hasScopedClubs(clubIds)
+        ? ' AND cl.id = ANY(:clubIds)'
+        : '';
 
     const sql = `
       WITH rango AS (
@@ -206,6 +374,7 @@ export class AdminService {
         JOIN "cancha" c ON c.id = dh."canchaId"
         JOIN "club" cl ON cl.id = c."clubId"
         WHERE dh.disponible = true
+        ${filterClub}
       ),
       slots AS (
         SELECT 
@@ -224,7 +393,9 @@ export class AdminService {
         JOIN "disponibilidad_horario" d ON d.id = r."disponibilidadId"
       )
       SELECT 
-        ${by === 'club' ? 's.club_id AS id, s.club_nombre AS nombre' : 's.cancha_id AS id, s.cancha_nombre AS nombre'},
+        ${by === 'club'
+          ? 's.club_id AS id, s.club_nombre AS nombre'
+          : 's.cancha_id AS id, s.cancha_nombre AS nombre'},
         COUNT(*) AS slots,
         SUM(CASE WHEN EXISTS (
           SELECT 1 FROM reservas rr 
@@ -233,26 +404,54 @@ export class AdminService {
             AND rr.estado = 'confirmada'
         ) THEN 1 ELSE 0 END) AS reservas
       FROM slots s
-      WHERE ${rango}
       GROUP BY 1,2
       ORDER BY reservas DESC;
     `;
+
+    if (hasScopedClubs(clubIds)) {
+      (params as any).clubIds = clubIds;
+    }
 
     const rows = await AppDataSource.query(sql, params);
     return rows.map((r: any) => {
       const ocup = r.slots > 0 ? Number(r.reservas)/Number(r.slots) : 0;
       const semaforo = ocup >= 0.8 ? 'verde' : ocup >= 0.5 ? 'amarillo' : 'rojo';
-      return { id: r.id, nombre: r.nombre, slots: Number(r.slots), reservas: Number(r.reservas), ocupacion: ocup, semaforo };
+      return {
+        id: r.id,
+        nombre: r.nombre,
+        slots: Number(r.slots),
+        reservas: Number(r.reservas),
+        ocupacion: ocup,
+        semaforo,
+      };
     });
   }
 
-  async heatmap({ clubId, canchaId, from, to, tz = 'America/Argentina/Cordoba' }: Range) {
+  // ————————————————— HEATMAP —————————————————
+
+  async heatmap({ clubId, canchaId, from, to, tz = 'America/Argentina/Cordoba', clubIds }: Range) {
     const params: any = { tz };
     let where = '1=1';
     if (from) { where += ` AND (r."fechaHora" AT TIME ZONE :tz) >= :from`; params.from = from; }
     if (to)   { where += ` AND (r."fechaHora" AT TIME ZONE :tz) <  :to`;   params.to   = to; }
-    if (clubId) { where += ' AND cl.id = :clubId'; params.clubId = clubId; }
-    if (canchaId) { where += ' AND c.id = :canchaId'; params.canchaId = canchaId; }
+
+    if (hasScopedClubs(clubIds)) {
+      if (clubId && clubIds!.includes(clubId)) {
+        where += ' AND cl.id = :clubId';
+        params.clubId = clubId;
+      } else {
+        where += ' AND cl.id IN (:...clubIds)';
+        params.clubIds = clubIds;
+      }
+    } else if (clubId) {
+      where += ' AND cl.id = :clubId';
+      params.clubId = clubId;
+    }
+
+    if (canchaId) {
+      where += ' AND c.id = :canchaId';
+      params.canchaId = canchaId;
+    }
 
     const rows = await reservaRepo.createQueryBuilder('r')
       .leftJoin('r.disponibilidad','d')
@@ -268,10 +467,14 @@ export class AdminService {
       .addOrderBy('hora','ASC')
       .getRawMany();
 
-    return rows.map(r => ({ dow: Number(r.dow), hora: r.hora, reservas: Number(r.reservas) }));
+    return rows.map(r => ({
+      dow: Number(r.dow),
+      hora: r.hora,
+      reservas: Number(r.reservas),
+    }));
   }
 
-  // ——— NUEVOS: TENDENCIAS PARA DASHBOARD ———
+  // ————————————————— TENDENCIA OCUPACIÓN —————————————————
 
   async ocupacionTrend({
     from,
@@ -280,13 +483,33 @@ export class AdminService {
     granularity = 'day',
     clubId,
     canchaId,
+    clubIds,
   }: Range) {
     const g = ['day','week','month'].includes(granularity || '') ? granularity : 'day';
-    const params: any = { tz };
-    if (from) params.from = from;
-    if (to) params.to = to;
-    if (clubId) params.clubId = clubId;
-    if (canchaId) params.canchaId = canchaId;
+    const params: any = { tz, from: from ?? null, to: to ?? null };
+
+    const filterClubDisp = (() => {
+      if (hasScopedClubs(clubIds)) {
+        if (clubId && clubIds!.includes(clubId)) {
+          params.clubId = clubId;
+          return ' AND cl.id = :clubId';
+        }
+        params.clubIds = clubIds;
+        return ' AND cl.id = ANY(:clubIds)';
+      } else if (clubId) {
+        params.clubId = clubId;
+        return ' AND cl.id = :clubId';
+      }
+      return '';
+    })();
+
+    const filterCanchaDisp = (() => {
+      if (canchaId) {
+        params.canchaId = canchaId;
+        return ' AND c.id = :canchaId';
+      }
+      return '';
+    })();
 
     const sql = `
       WITH rango AS (
@@ -304,8 +527,8 @@ export class AdminService {
         JOIN "cancha" c ON c.id = dh."canchaId"
         JOIN "club" cl ON cl.id = c."clubId"
         WHERE dh.disponible = true
-          ${clubId ? 'AND cl.id = :clubId' : ''}
-          ${canchaId ? 'AND c.id = :canchaId' : ''}
+        ${filterClubDisp}
+        ${filterCanchaDisp}
       ),
       slots AS (
         SELECT 
@@ -354,6 +577,8 @@ export class AdminService {
     });
   }
 
+  // ————————————————— TENDENCIA REVENUE —————————————————
+
   async revenueTrend({
     from,
     to,
@@ -361,15 +586,30 @@ export class AdminService {
     granularity,
     clubId,
     canchaId,
+    clubIds,
   }: Range) {
     const g = granularity || 'day';
     const expr = `date_trunc('${g}', reserva."fechaHora" AT TIME ZONE :tz)`;
     const params: any = { tz };
-    let where = 'reserva.estado = \'confirmada\'';
+    let where = `reserva.estado = 'confirmada'`;
     if (from) { where += ` AND (reserva."fechaHora" AT TIME ZONE :tz) >= :from`; params.from = from; }
     if (to)   { where += ` AND (reserva."fechaHora" AT TIME ZONE :tz) <  :to`;   params.to   = to; }
-    if (clubId)   { where += ' AND club.id = :clubId'; params.clubId = clubId; }
-    if (canchaId) { where += ' AND cancha.id = :canchaId'; params.canchaId = canchaId; }
+
+    if (hasScopedClubs(clubIds)) {
+      if (canchaId) {
+        where += ' AND cancha.id = :canchaId';
+        params.canchaId = canchaId;
+      } else if (clubId && clubIds!.includes(clubId)) {
+        where += ' AND club.id = :clubId';
+        params.clubId = clubId;
+      } else {
+        where += ' AND club.id IN (:...clubIds)';
+        params.clubIds = clubIds;
+      }
+    } else {
+      if (clubId)   { where += ' AND club.id = :clubId'; params.clubId = clubId; }
+      if (canchaId) { where += ' AND cancha.id = :canchaId'; params.canchaId = canchaId; }
+    }
 
     const rows = await reservaRepo.createQueryBuilder('reserva')
       .leftJoin('reserva.disponibilidad','disp')
@@ -389,6 +629,10 @@ export class AdminService {
       revenue: Number(r.revenue),
     }));
   }
+
+  // ————————————————— TENDENCIA USUARIOS —————————————————
+  // (por ahora global; si más adelante tenemos "usuario ↔ club" explícito,
+  // acá se puede filtrar también)
 
   async usuariosTrend({
     from,
@@ -411,9 +655,8 @@ export class AdminService {
       .orderBy('bucket','ASC')
       .getRawMany();
 
-    // acumulado para gráfico de línea
     let acumulado = 0;
-    const out = rows.map(r => {
+    return rows.map(r => {
       const count = Number(r.usuariosnuevos ?? r.usuariosNuevos);
       acumulado += count;
       return {
@@ -422,13 +665,23 @@ export class AdminService {
         acumulado,
       };
     });
-
-    return out;
   }
 
-  // ——— NUEVO: Segmentación de usuarios (RFM simple) ———
-  async segmentacionUsuarios() {
-    // Tomamos reservas confirmadas y precio de cancha como "Monetary"
+  // ————————————————— SEGMENTACIÓN USUARIOS (RFM) —————————————————
+
+  async segmentacionUsuarios({ clubIds }: Scope = {}) {
+    // admin-club sin clubes → vacío
+    if (clubIds && clubIds.length === 0) return [];
+
+    const params: any = {};
+    const filtroClub = hasScopedClubs(clubIds)
+      ? 'WHERE cl.id = ANY(:clubIds)'
+      : '';
+
+    if (hasScopedClubs(clubIds)) {
+      params.clubIds = clubIds;
+    }
+
     const sql = `
       SELECT 
         u.id AS "usuarioId",
@@ -444,20 +697,21 @@ export class AdminService {
       LEFT JOIN "reserva" r ON r."personaId" = p.id
       LEFT JOIN "disponibilidad_horario" d ON d.id = r."disponibilidadId"
       LEFT JOIN "cancha" c ON c.id = d."canchaId"
+      LEFT JOIN "club" cl ON cl.id = c."clubId"
+      ${filtroClub}
       GROUP BY u.id, p.id, p.nombre, p.apellido, p.email
       ORDER BY "monetary" DESC;
     `;
 
-    const rows: any[] = await AppDataSource.query(sql);
+    const rows: any[] = await AppDataSource.query(sql, params);
     const now = DateTime.now().setZone('America/Argentina/Cordoba');
 
-    const mapped = rows.map(r => {
+    return rows.map(r => {
       const last = r.lastReserva ? DateTime.fromISO(r.lastReserva as string) : null;
       const recencyDays = last ? Math.max(0, Math.floor(now.diff(last, 'days').days)) : null;
       const frequency = Number(r.reservasConfirmadas || 0);
       const monetary = Number(r.monetary || 0);
 
-      // Segmentación simple
       let segment = 'lead'; // nunca reservó
       if (frequency === 0 && recencyDays === null) {
         segment = 'lead';
@@ -483,7 +737,5 @@ export class AdminService {
         segment,
       };
     });
-
-    return mapped;
   }
 }
