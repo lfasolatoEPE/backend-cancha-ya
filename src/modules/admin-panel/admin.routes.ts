@@ -1,4 +1,3 @@
-// src/modules/admin/admin.routes.ts
 import { Router } from 'express';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
@@ -18,11 +17,18 @@ router.get('/top-jugadores', controller.topJugadores);
 router.get('/canchas-mas-usadas', controller.canchasMasUsadas);
 router.get('/personas-con-deuda', controller.personasConDeuda);
 
-// NUEVOS (sin class-validator)
+// EXISTENTES (reservas / ocupación / heatmap)
 router.get('/reservas/aggregate', controller.aggregates);
 router.get('/reservas/drilldown', controller.drilldown);
 router.get('/ocupacion', controller.ocupacion);
 router.get('/reservas/heatmap', controller.heatmap);
 
+// NUEVOS: Tendencias para dashboard admin
+router.get('/reportes/ocupacion-trend', controller.ocupacionTrend);
+router.get('/reportes/revenue-trend', controller.revenueTrend);
+router.get('/reportes/usuarios-trend', controller.usuariosTrend);
+
+// NUEVO: Segmentación de usuarios (RFM simple)
+router.get('/usuarios/segmentacion', controller.segmentacionUsuarios);
 
 export default router;

@@ -1,4 +1,3 @@
-// src/modules/admin/admin.service.ts
 import { AppDataSource } from '../../database/data-source';
 import { Reserva } from '../../entities/Reserva.entity';
 import { DisponibilidadHorario } from '../../entities/DisponibilidadHorario.entity';
@@ -6,6 +5,7 @@ import { Cancha } from '../../entities/Cancha.entity';
 import { Usuario } from '../../entities/Usuario.entity';
 import { Deuda } from '../../entities/Deuda.entity';
 import { PerfilCompetitivo } from '../../entities/PerfilCompetitivo.entity';
+import { DateTime } from 'luxon';
 
 const reservaRepo = AppDataSource.getRepository(Reserva);
 const canchaRepo  = AppDataSource.getRepository(Cancha);
@@ -85,7 +85,7 @@ export class AdminService {
       .getRawMany();
   }
 
-  // ——— NUEVOS ———
+  // ——— EXISTENTES REPORTES ———
   private bucketExpr(granularity: Range['granularity'], tz: string) {
     const g = granularity || 'day';
     const expr = `date_trunc('${g}', reserva."fechaHora" AT TIME ZONE :tz)`;
@@ -185,23 +185,23 @@ export class AdminService {
 
   async ocupacion({ by='cancha', from, to, tz = 'America/Argentina/Cordoba' }: Range) {
     // Ocupación = reservas_confirmadas / slots_disponibles_en_rango
-    // Slots: contamos DisponibilidadHorario cuya (diaSemana y horaInicio) caen en el rango de fechas.
     const params: any = { tz };
     let rango = '1=1';
     if (from) { rango += ` AND d IS NOT NULL AND d >= :from`; params.from = from; }
     if (to)   { rango += ` AND d IS NOT NULL AND d <  :to`;   params.to   = to; }
 
-    // Generamos días en el rango con generate_series y cruzamos con disponibilidades
     const sql = `
       WITH rango AS (
         SELECT generate_series(
           (COALESCE(:from::timestamptz, NOW() - interval '30 day'))::date,
-          (COALESCE(:to::timestamptz, NOW()))::date,
+          (COALESCE(:to::timestamptz,   NOW()))::date,
           interval '1 day'
         )::date AS d
       ),
       disp AS (
-        SELECT dh.id, dh."diaSemana", dh."horaInicio", dh."horaFin", c.id AS cancha_id, c.nombre AS cancha_nombre, cl.id AS club_id, cl.nombre AS club_nombre
+        SELECT dh.id, dh."diaSemana", dh."horaInicio", dh."horaFin",
+               c.id AS cancha_id, c.nombre AS cancha_nombre,
+               cl.id AS club_id, cl.nombre AS club_nombre
         FROM "disponibilidad_horario" dh
         JOIN "cancha" c ON c.id = dh."canchaId"
         JOIN "club" cl ON cl.id = c."clubId"
@@ -211,9 +211,10 @@ export class AdminService {
         SELECT 
           (r.d + dh."horaInicio"::time) AT TIME ZONE :tz AS slot_ts,
           dh.id AS disp_id,
-          dh.cancha_id, dh.cancha_nombre, dh.club_id, dh.club_nombre
+          dh.cancha_id, dh.cancha_nombre, dh.club_id, dh.club_nombre,
+          r.d
         FROM rango r
-        JOIN disp dh ON EXTRACT(DOW FROM r.d) = (CASE WHEN dh."diaSemana"=0 THEN 0 ELSE dh."diaSemana" END)
+        JOIN disp dh ON EXTRACT(DOW FROM r.d) = dh."diaSemana"
       ),
       reservas AS (
         SELECT 
@@ -268,5 +269,221 @@ export class AdminService {
       .getRawMany();
 
     return rows.map(r => ({ dow: Number(r.dow), hora: r.hora, reservas: Number(r.reservas) }));
+  }
+
+  // ——— NUEVOS: TENDENCIAS PARA DASHBOARD ———
+
+  async ocupacionTrend({
+    from,
+    to,
+    tz = 'America/Argentina/Cordoba',
+    granularity = 'day',
+    clubId,
+    canchaId,
+  }: Range) {
+    const g = ['day','week','month'].includes(granularity || '') ? granularity : 'day';
+    const params: any = { tz };
+    if (from) params.from = from;
+    if (to) params.to = to;
+    if (clubId) params.clubId = clubId;
+    if (canchaId) params.canchaId = canchaId;
+
+    const sql = `
+      WITH rango AS (
+        SELECT generate_series(
+          (COALESCE(:from::timestamptz, NOW() - interval '30 day'))::date,
+          (COALESCE(:to::timestamptz,   NOW()))::date,
+          interval '1 day'
+        )::date AS d
+      ),
+      disp AS (
+        SELECT dh.id, dh."diaSemana", dh."horaInicio", dh."horaFin",
+               c.id AS cancha_id,
+               cl.id AS club_id
+        FROM "disponibilidad_horario" dh
+        JOIN "cancha" c ON c.id = dh."canchaId"
+        JOIN "club" cl ON cl.id = c."clubId"
+        WHERE dh.disponible = true
+          ${clubId ? 'AND cl.id = :clubId' : ''}
+          ${canchaId ? 'AND c.id = :canchaId' : ''}
+      ),
+      slots AS (
+        SELECT 
+          (r.d + dh."horaInicio"::time) AT TIME ZONE :tz AS slot_ts,
+          dh.id AS disp_id
+        FROM rango r
+        JOIN disp dh ON EXTRACT(DOW FROM r.d) = dh."diaSemana"
+      ),
+      reservas AS (
+        SELECT 
+          d.id AS disp_id,
+          r."fechaHora" AT TIME ZONE :tz AS res_ts,
+          r.estado
+        FROM "reserva" r
+        JOIN "disponibilidad_horario" d ON d.id = r."disponibilidadId"
+      )
+      SELECT 
+        date_trunc('${g}', s.slot_ts) AS bucket,
+        COUNT(*) AS slots,
+        SUM(
+          CASE WHEN EXISTS (
+            SELECT 1 
+            FROM reservas rr
+            WHERE rr.disp_id = s.disp_id
+              AND date_trunc('hour', rr.res_ts) = date_trunc('hour', s.slot_ts)
+              AND rr.estado = 'confirmada'
+          )
+          THEN 1 ELSE 0 END
+        ) AS reservas
+      FROM slots s
+      GROUP BY bucket
+      ORDER BY bucket ASC;
+    `;
+
+    const rows = await AppDataSource.query(sql, params);
+    return rows.map((r: any) => {
+      const slots = Number(r.slots);
+      const reservas = Number(r.reservas);
+      const ocup = slots > 0 ? reservas / slots : 0;
+      return {
+        bucket: new Date(r.bucket).toISOString(),
+        slots,
+        reservas,
+        ocupacion: ocup,
+      };
+    });
+  }
+
+  async revenueTrend({
+    from,
+    to,
+    tz = 'America/Argentina/Cordoba',
+    granularity,
+    clubId,
+    canchaId,
+  }: Range) {
+    const g = granularity || 'day';
+    const expr = `date_trunc('${g}', reserva."fechaHora" AT TIME ZONE :tz)`;
+    const params: any = { tz };
+    let where = 'reserva.estado = \'confirmada\'';
+    if (from) { where += ` AND (reserva."fechaHora" AT TIME ZONE :tz) >= :from`; params.from = from; }
+    if (to)   { where += ` AND (reserva."fechaHora" AT TIME ZONE :tz) <  :to`;   params.to   = to; }
+    if (clubId)   { where += ' AND club.id = :clubId'; params.clubId = clubId; }
+    if (canchaId) { where += ' AND cancha.id = :canchaId'; params.canchaId = canchaId; }
+
+    const rows = await reservaRepo.createQueryBuilder('reserva')
+      .leftJoin('reserva.disponibilidad','disp')
+      .leftJoin('disp.cancha','cancha')
+      .leftJoin('cancha.club','club')
+      .select(`${expr}`,'bucket')
+      .addSelect('COUNT(reserva.id)','reservasConfirmadas')
+      .addSelect(`COALESCE(SUM(cancha."precioPorHora"),0)`,'revenue')
+      .where(where, params)
+      .groupBy('bucket')
+      .orderBy('bucket','ASC')
+      .getRawMany();
+
+    return rows.map(r => ({
+      bucket: new Date(r.bucket).toISOString(),
+      reservasConfirmadas: Number(r.reservasconfirmadas ?? r.reservasConfirmadas),
+      revenue: Number(r.revenue),
+    }));
+  }
+
+  async usuariosTrend({
+    from,
+    to,
+    tz = 'America/Argentina/Cordoba',
+    granularity,
+  }: Range) {
+    const g = granularity || 'day';
+    const expr = `date_trunc('${g}', usuario."createdAt" AT TIME ZONE :tz)`;
+    const params: any = { tz };
+    let where = '1=1';
+    if (from) { where += ` AND (usuario."createdAt" AT TIME ZONE :tz) >= :from`; params.from = from; }
+    if (to)   { where += ` AND (usuario."createdAt" AT TIME ZONE :tz) <  :to`;   params.to   = to; }
+
+    const rows = await usuarioRepo.createQueryBuilder('usuario')
+      .select(`${expr}`,'bucket')
+      .addSelect('COUNT(usuario.id)','usuariosNuevos')
+      .where(where, params)
+      .groupBy('bucket')
+      .orderBy('bucket','ASC')
+      .getRawMany();
+
+    // acumulado para gráfico de línea
+    let acumulado = 0;
+    const out = rows.map(r => {
+      const count = Number(r.usuariosnuevos ?? r.usuariosNuevos);
+      acumulado += count;
+      return {
+        bucket: new Date(r.bucket).toISOString(),
+        usuariosNuevos: count,
+        acumulado,
+      };
+    });
+
+    return out;
+  }
+
+  // ——— NUEVO: Segmentación de usuarios (RFM simple) ———
+  async segmentacionUsuarios() {
+    // Tomamos reservas confirmadas y precio de cancha como "Monetary"
+    const sql = `
+      SELECT 
+        u.id AS "usuarioId",
+        p.id AS "personaId",
+        p.nombre,
+        p.apellido,
+        p.email,
+        MAX(CASE WHEN r.estado = 'confirmada' THEN r."fechaHora" END) AS "lastReserva",
+        COUNT(CASE WHEN r.estado = 'confirmada' THEN 1 END) AS "reservasConfirmadas",
+        COALESCE(SUM(CASE WHEN r.estado = 'confirmada' THEN c."precioPorHora"::numeric END),0) AS "monetary"
+      FROM "usuario" u
+      JOIN "persona" p ON p.id = u."personaId"
+      LEFT JOIN "reserva" r ON r."personaId" = p.id
+      LEFT JOIN "disponibilidad_horario" d ON d.id = r."disponibilidadId"
+      LEFT JOIN "cancha" c ON c.id = d."canchaId"
+      GROUP BY u.id, p.id, p.nombre, p.apellido, p.email
+      ORDER BY "monetary" DESC;
+    `;
+
+    const rows: any[] = await AppDataSource.query(sql);
+    const now = DateTime.now().setZone('America/Argentina/Cordoba');
+
+    const mapped = rows.map(r => {
+      const last = r.lastReserva ? DateTime.fromISO(r.lastReserva as string) : null;
+      const recencyDays = last ? Math.max(0, Math.floor(now.diff(last, 'days').days)) : null;
+      const frequency = Number(r.reservasConfirmadas || 0);
+      const monetary = Number(r.monetary || 0);
+
+      // Segmentación simple
+      let segment = 'lead'; // nunca reservó
+      if (frequency === 0 && recencyDays === null) {
+        segment = 'lead';
+      } else if (frequency >= 10 && recencyDays !== null && recencyDays <= 30) {
+        segment = 'vip';
+      } else if (frequency >= 5 && recencyDays !== null && recencyDays <= 60) {
+        segment = 'fiel';
+      } else if (frequency >= 1 && recencyDays !== null && recencyDays <= 90) {
+        segment = 'activo';
+      } else if (frequency >= 1 && recencyDays !== null && recencyDays > 90) {
+        segment = 'reactivar';
+      }
+
+      return {
+        usuarioId: r.usuarioId,
+        personaId: r.personaId,
+        nombreCompleto: `${r.nombre} ${r.apellido}`,
+        email: r.email,
+        recencyDays,
+        lastReserva: r.lastReserva,
+        frequency,
+        monetary,
+        segment,
+      };
+    });
+
+    return mapped;
   }
 }
