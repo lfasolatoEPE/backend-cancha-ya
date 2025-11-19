@@ -13,9 +13,7 @@ const fotoRepo = AppDataSource.getRepository(CanchaFoto);
 export class CanchaService {
   async crear(data: {
     nombre: string;
-    ubicacion: string;
-    latitud?: number | null;
-    longitud?: number | null;
+    ubicacion: string;          // referencia interna
     precioPorHora: number;
     tipoSuperficie: string;
     clubId: string;
@@ -35,8 +33,6 @@ export class CanchaService {
     const cancha = canchaRepo.create({
       nombre: data.nombre,
       ubicacion: data.ubicacion,
-      latitud: data.latitud ?? null,
-      longitud: data.longitud ?? null,
       precioPorHora: Number(data.precioPorHora),
       tipoSuperficie: data.tipoSuperficie,
       club,
@@ -56,8 +52,6 @@ export class CanchaService {
     data: Partial<{
       nombre: string;
       ubicacion: string;
-      latitud: number | null;
-      longitud: number | null;
       precioPorHora: number;
       tipoSuperficie: string;
       clubId: string;
@@ -99,8 +93,6 @@ export class CanchaService {
     // merge campos simples
     if (data.nombre !== undefined) cancha.nombre = data.nombre;
     if (data.ubicacion !== undefined) cancha.ubicacion = data.ubicacion;
-    if (data.latitud !== undefined) cancha.latitud = data.latitud;
-    if (data.longitud !== undefined) cancha.longitud = data.longitud;
     if (data.precioPorHora !== undefined) cancha.precioPorHora = Number(data.precioPorHora);
     if (data.tipoSuperficie !== undefined) cancha.tipoSuperficie = data.tipoSuperficie;
 

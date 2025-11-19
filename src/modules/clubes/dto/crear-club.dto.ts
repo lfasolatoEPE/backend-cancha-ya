@@ -1,8 +1,7 @@
-import { IsString, IsEmail, MinLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, IsNumber } from 'class-validator';
 
 export class CrearClubDto {
   @IsString()
-  @MinLength(3)
   nombre!: string;
 
   @IsString()
@@ -13,4 +12,12 @@ export class CrearClubDto {
 
   @IsEmail()
   email!: string;
+
+  @IsOptional()
+  @IsNumber()
+  latitud?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  longitud?: number | null;
 }

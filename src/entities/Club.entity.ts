@@ -10,6 +10,7 @@ export class Club {
   @Column()
   nombre!: string;
 
+  // Dirección física del club (para mostrar y geocodificar)
   @Column()
   direccion!: string;
 
@@ -19,6 +20,17 @@ export class Club {
   @Column()
   email!: string;
 
+  // 🔹 Coordenadas del club (para mapa)
+  @Column('decimal', { precision: 10, scale: 7, nullable: true })
+  latitud!: number | null;
+
+  @Column('decimal', { precision: 10, scale: 7, nullable: true })
+  longitud!: number | null;
+
   @OneToMany(() => Cancha, cancha => cancha.club)
   canchas!: Cancha[];
+
+  // (si usás Valoracion)
+  // @OneToMany(() => Valoracion, v => v.club)
+  // valoraciones!: Valoracion[];
 }
