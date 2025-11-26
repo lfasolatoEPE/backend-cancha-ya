@@ -6,6 +6,7 @@ import { DisponibilidadHorario } from '../../entities/DisponibilidadHorario.enti
 import { AuditoriaService } from '../auditoria/auditoria.service';
 import { DateTime } from 'luxon';
 import { Usuario } from '../../entities/Usuario.entity';
+import { crearStateParaReserva } from './state/reserva-state.factory';
 
 const auditoriaService = new AuditoriaService();
 
@@ -220,7 +221,10 @@ export class ReservaService {
 
     // permisos: admin o dueño
     if (usuarioId) {
-      const user = await usuarioRepo.findOne({ where: { id: usuarioId }, relations: ['rol', 'persona'] });
+      const user = await usuarioRepo.findOne({
+        where: { id: usuarioId },
+        relations: ['rol', 'persona'],
+      });
       const isAdmin = user?.rol?.nombre === 'admin';
       const isOwner = user?.persona?.id === reserva.persona.id;
       if (!isAdmin && !isOwner) {
@@ -228,7 +232,10 @@ export class ReservaService {
       }
     }
 
-    reserva.estado = EstadoReserva.Confirmada;
+    // acá aplico patrón State
+    const state = crearStateParaReserva(reserva);
+    state.confirmar(reserva);
+
     const actualizada = await reservaRepo.save(reserva);
 
     await auditoriaService.registrar({
@@ -239,13 +246,10 @@ export class ReservaService {
       entidadId: actualizada.id,
     });
 
-    // 🔕 Notificaciones por mail y recordatorios desactivados intencionalmente.
-    // Antes acá se llamaba a NotifsService y EmailService.
-
     return actualizada;
   }
 
-  async cancelarReserva(id: string, usuarioId: string) {
+    async cancelarReserva(id: string, usuarioId: string) {
     const reservaRepo = AppDataSource.getRepository(Reserva);
     const usuarioRepo = AppDataSource.getRepository(Usuario);
 
@@ -267,7 +271,10 @@ export class ReservaService {
       }
     }
 
-    reserva.estado = EstadoReserva.Cancelada;
+    // acá aplico patrón State
+    const state = crearStateParaReserva(reserva);
+    state.cancelar(reserva);
+
     const actualizada = await reservaRepo.save(reserva);
 
     await auditoriaService.registrar({
@@ -280,6 +287,7 @@ export class ReservaService {
 
     return actualizada;
   }
+
 
   async obtenerTodas() {
     return await AppDataSource.getRepository(Reserva).find({

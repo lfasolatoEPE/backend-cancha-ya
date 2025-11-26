@@ -7,6 +7,8 @@ import { PerfilCompetitivo } from '../../entities/PerfilCompetitivo.entity';
 import { Persona } from '../../entities/Persona.entity';
 import { Auditoria } from '../../entities/Auditoria.entity';
 import { EloHistory } from '../../entities/EloHistory.entity';
+import { RankingStrategy } from '../ranking/ranking-strategy';
+import { EloTeamStrategy } from '../ranking/elo-team.strategy';
 
 const desafioRepo = AppDataSource.getRepository(Desafio);
 const personaRepo = AppDataSource.getRepository(Persona);
@@ -17,8 +19,8 @@ const auditoriaRepo = AppDataSource.getRepository(Auditoria);
 const eloHistoryRepo = AppDataSource.getRepository(EloHistory);
 
 export class DesafioService {
-  private K = 32; // K-factor ELO
   private ELO_INICIAL = 1200;
+  private rankingStrategy: RankingStrategy = new EloTeamStrategy();
 
   async crearDesafio(
     dto: {
@@ -344,7 +346,7 @@ export class DesafioService {
       .getMany();
   }
   
-  private async actualizarRankingEloPorLados(
+   private async actualizarRankingEloPorLados(
     ganadores: Persona[],
     perdedores: Persona[]
   ) {
@@ -360,32 +362,49 @@ export class DesafioService {
     const faltan = (grupo: Persona[], perfiles: PerfilCompetitivo[]) =>
       grupo.filter(p => !perfiles.find(per => per.usuario.persona.id === p.id));
 
+    // crear perfiles faltantes con ELO inicial
     perfilesGanadores.push(
       ...faltan(ganadores, perfilesGanadores).map(p =>
-        perfilRepo.create({ ranking: this.ELO_INICIAL, usuario: { persona: p } as any })
+        perfilRepo.create({
+          ranking: this.ELO_INICIAL,
+          usuario: { persona: p } as any,
+          activo: true,
+        })
       )
     );
     perfilesPerdedores.push(
       ...faltan(perdedores, perfilesPerdedores).map(p =>
-        perfilRepo.create({ ranking: this.ELO_INICIAL, usuario: { persona: p } as any })
+        perfilRepo.create({
+          ranking: this.ELO_INICIAL,
+          usuario: { persona: p } as any,
+          activo: true,
+        })
       )
     );
 
-    const promedio = (nums: number[]) => nums.reduce((a, b) => a + b, 0) / (nums.length || 1);
+    // rankings actuales
+    const rankingGanadores = perfilesGanadores.map(p => p.ranking);
+    const rankingPerdedores = perfilesPerdedores.map(p => p.ranking);
 
-    const rankingGanador = promedio(perfilesGanadores.map(p => p.ranking));
-    const rankingPerdedor = promedio(perfilesPerdedores.map(p => p.ranking));
+    // 👉 acá se aplica el Strategy
+    const { nuevosGanadores, nuevosPerdedores } =
+      this.rankingStrategy.calcularNuevoRankingEquipos({
+        rankingGanadores,
+        rankingPerdedores,
+      });
 
-    const expectedG = 1 / (1 + Math.pow(10, (rankingPerdedor - rankingGanador) / 400));
-    const expectedP = 1 - expectedG;
-
-    perfilesGanadores.forEach(p => p.ranking = Math.round(p.ranking + this.K * (1 - expectedG)));
-    perfilesPerdedores.forEach(p => p.ranking = Math.round(p.ranking + this.K * (0 - expectedP)));
+    // asignar nuevos rankings respetando el orden
+    perfilesGanadores.forEach((p, i) => {
+      p.ranking = nuevosGanadores[i];
+    });
+    perfilesPerdedores.forEach((p, i) => {
+      p.ranking = nuevosPerdedores[i];
+    });
 
     await perfilRepo.save([...perfilesGanadores, ...perfilesPerdedores]);
   }
 
-  private async actualizarRankingEloPorLadosConHistorial(
+    private async actualizarRankingEloPorLadosConHistorial(
     ganadores: Persona[],
     perdedores: Persona[],
     desafio?: Desafio
@@ -402,51 +421,70 @@ export class DesafioService {
     const faltan = (grupo: Persona[], perfiles: PerfilCompetitivo[]) =>
       grupo.filter(p => !perfiles.find(per => per.usuario.persona.id === p.id));
 
-    // crear perfiles faltantes
-    const ELO_INICIAL = this.ELO_INICIAL;
+    // crear perfiles faltantes con ELO inicial
     perfilesGanadores.push(
       ...faltan(ganadores, perfilesGanadores).map(p =>
-        perfilRepo.create({ ranking: ELO_INICIAL, usuario: { persona: p } as any, activo: true })
+        perfilRepo.create({
+          ranking: this.ELO_INICIAL,
+          usuario: { persona: p } as any,
+          activo: true,
+        })
       )
     );
     perfilesPerdedores.push(
       ...faltan(perdedores, perfilesPerdedores).map(p =>
-        perfilRepo.create({ ranking: ELO_INICIAL, usuario: { persona: p } as any, activo: true })
+        perfilRepo.create({
+          ranking: this.ELO_INICIAL,
+          usuario: { persona: p } as any,
+          activo: true,
+        })
       )
     );
 
-    const promedio = (xs: number[]) => (xs.length ? xs.reduce((a,b)=>a+b,0)/xs.length : ELO_INICIAL);
-    const rankingG = promedio(perfilesGanadores.map(p => p.ranking));
-    const rankingP = promedio(perfilesPerdedores.map(p => p.ranking));
+    const rankingGanadores = perfilesGanadores.map(p => p.ranking);
+    const rankingPerdedores = perfilesPerdedores.map(p => p.ranking);
 
-    const expectedG = 1 / (1 + Math.pow(10, (rankingP - rankingG) / 400));
-    const expectedP = 1 - expectedG;
+    // 👉 Strategy: cálculo de nuevos rankings por equipos
+    const { nuevosGanadores, nuevosPerdedores } =
+      this.rankingStrategy.calcularNuevoRankingEquipos({
+        rankingGanadores,
+        rankingPerdedores,
+      });
 
-    const K = this.K;
     const historiales: EloHistory[] = [];
 
-    perfilesGanadores.forEach(p => {
+    perfilesGanadores.forEach((p, i) => {
       const prev = p.ranking;
-      p.ranking = Math.round(prev + K * (1 - expectedG));
-      historiales.push(eloHistoryRepo.create({
-        perfil: p,
-        desafio,
-        rankingAnterior: prev,
-        rankingNuevo: p.ranking,
-        delta: p.ranking - prev
-      }));
+      const nuevo = nuevosGanadores[i];
+
+      p.ranking = nuevo;
+
+      historiales.push(
+        eloHistoryRepo.create({
+          perfil: p,
+          desafio,
+          rankingAnterior: prev,
+          rankingNuevo: nuevo,
+          delta: nuevo - prev,
+        })
+      );
     });
 
-    perfilesPerdedores.forEach(p => {
+    perfilesPerdedores.forEach((p, i) => {
       const prev = p.ranking;
-      p.ranking = Math.round(prev + K * (0 - expectedP));
-      historiales.push(eloHistoryRepo.create({
-        perfil: p,
-        desafio,
-        rankingAnterior: prev,
-        rankingNuevo: p.ranking,
-        delta: p.ranking - prev
-      }));
+      const nuevo = nuevosPerdedores[i];
+
+      p.ranking = nuevo;
+
+      historiales.push(
+        eloHistoryRepo.create({
+          perfil: p,
+          desafio,
+          rankingAnterior: prev,
+          rankingNuevo: nuevo,
+          delta: nuevo - prev,
+        })
+      );
     });
 
     await perfilRepo.save([...perfilesGanadores, ...perfilesPerdedores]);
@@ -454,6 +492,7 @@ export class DesafioService {
 
     return historiales;
   }
+
 
   private actualizarStatsPorLados(
     desafio: Desafio,
