@@ -3,18 +3,35 @@ import { DesafioService } from './desafio.service';
 import { CrearDesafioDto } from './dto/crear-desafio.dto';
 import { AgregarJugadoresDto } from './dto/agregar-jugadores.dto';
 import { FinalizarDesafioDto } from './dto/finalizar-desafio.dto';
+import { FiltroDesafioDto } from './dto/filtro-desafio.dto';
+
+interface UsuarioJwtPayload {
+  personaId: string;
+  rol: string; // ej: 'admin', 'usuario', 'admin_club', etc.
+}
 
 export class DesafioController {
   constructor(private service: DesafioService) {}
 
-  private getPersonaId(req: Request) {
-    return (req as any).user?.personaId as string;
+  private getUsuario(req: Request): UsuarioJwtPayload | undefined {
+    return (req as any).user as UsuarioJwtPayload | undefined;
   }
 
-  crear = async (req: Request, res: Response) => {
+  private getPersonaId(req: Request): string | undefined {
+    return this.getUsuario(req)?.personaId;
+  }
+
+  // ---------- MÉTODOS ----------
+
+  crear = async (req: Request, res: Response): Promise<void> => {
     try {
       const dto = req.body as CrearDesafioDto;
       const personaId = this.getPersonaId(req);
+      if (!personaId) {
+        res.status(401).json({ error: 'No autenticado' });
+        return;
+      }
+
       const desafio = await this.service.crearDesafio(dto, personaId);
       res.status(201).json(desafio);
     } catch (error: any) {
@@ -23,9 +40,14 @@ export class DesafioController {
     }
   };
 
-  aceptarDesafio = async (req: Request, res: Response) => {
+  aceptarDesafio = async (req: Request, res: Response): Promise<void> => {
     try {
       const personaId = this.getPersonaId(req);
+      if (!personaId) {
+        res.status(401).json({ error: 'No autenticado' });
+        return;
+      }
+
       const desafio = await this.service.aceptarDesafio(req.params.id, personaId);
       res.json(desafio);
     } catch (error: any) {
@@ -34,9 +56,14 @@ export class DesafioController {
     }
   };
 
-  rechazarDesafio = async (req: Request, res: Response) => {
+  rechazarDesafio = async (req: Request, res: Response): Promise<void> => {
     try {
       const personaId = this.getPersonaId(req);
+      if (!personaId) {
+        res.status(401).json({ error: 'No autenticado' });
+        return;
+      }
+
       const desafio = await this.service.rechazarDesafio(req.params.id, personaId);
       res.json(desafio);
     } catch (error: any) {
@@ -45,11 +72,45 @@ export class DesafioController {
     }
   };
 
-  agregarJugadores = async (req: Request, res: Response) => {
+  cancelarDesafio = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const usuario = this.getUsuario(req);
+      if (!usuario?.personaId) {
+        res.status(401).json({ error: 'No autenticado' });
+        return;
+      }
+
+      const esAdmin = usuario.rol === 'admin';
+
+      const desafio = await this.service.cancelarDesafio(
+        req.params.id,
+        usuario.personaId,
+        esAdmin,
+      );
+      res.json(desafio);
+    } catch (error: any) {
+      console.error('[cancelar] Error:', error);
+      res.status(400).json({ error: error.message });
+    }
+  };
+
+  agregarJugadores = async (req: Request, res: Response): Promise<void> => {
     try {
       const dto = req.body as AgregarJugadoresDto;
-      const solicitanteId = this.getPersonaId(req);
-      const desafio = await this.service.agregarJugadores(req.params.id, solicitanteId, dto);
+      const usuario = this.getUsuario(req);
+      if (!usuario?.personaId) {
+        res.status(401).json({ error: 'No autenticado' });
+        return;
+      }
+
+      const esAdmin = usuario.rol === 'admin';
+
+      const desafio = await this.service.agregarJugadores(
+        req.params.id,
+        usuario.personaId,
+        esAdmin,
+        dto,
+      );
       res.json(desafio);
     } catch (error: any) {
       console.error('[agregarJugadores] Error:', error);
@@ -57,11 +118,20 @@ export class DesafioController {
     }
   };
 
-  finalizar = async (req: Request, res: Response) => {
+  finalizar = async (req: Request, res: Response): Promise<void> => {
     try {
       const dto = req.body as FinalizarDesafioDto;
-      const solicitanteId = this.getPersonaId(req);
-      const desafio = await this.service.finalizarDesafio(req.params.id, solicitanteId, dto);
+      const personaId = this.getPersonaId(req);
+      if (!personaId) {
+        res.status(401).json({ error: 'No autenticado' });
+        return;
+      }
+
+      const desafio = await this.service.finalizarDesafio(
+        req.params.id,
+        personaId,
+        dto,
+      );
       res.json(desafio);
     } catch (error: any) {
       console.error('[finalizar] Error:', error);
@@ -69,9 +139,27 @@ export class DesafioController {
     }
   };
 
-  listar = async (_req: Request, res: Response) => {
+  listar = async (req: Request, res: Response): Promise<void> => {
     try {
-      const lista = await this.service.listarDesafios();
+      const usuario = this.getUsuario(req);
+      if (!usuario?.personaId) {
+        res.status(401).json({ error: 'No autenticado' });
+        return;
+      }
+
+      const esAdmin = usuario.rol === 'admin';
+
+      const filtro: FiltroDesafioDto = {
+        estado: req.query.estado as any,
+        deporteId: req.query.deporteId as any,
+        jugadorId: req.query.jugadorId as any, // sólo se usa si es admin
+      };
+
+      const lista = await this.service.listarDesafios(
+        usuario.personaId,
+        filtro,
+        esAdmin,
+      );
       res.json(lista);
     } catch (error: any) {
       console.error('[listar] Error:', error);

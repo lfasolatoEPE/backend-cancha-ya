@@ -11,5 +11,5 @@ export class FiltroDesafioDto {
 
   @IsOptional()
   @IsUUID()
-  jugadorId?: string;
+  jugadorId?: string; // opcional para admins
 }

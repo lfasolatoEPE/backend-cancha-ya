@@ -48,6 +48,11 @@ creador!: Persona;
 @JoinTable({ name: 'desafio_jugadores_creador' })
 jugadoresCreador!: Persona[];
 
+// Invitados del lado creador (pendientes de aceptar) ✅ NUEVO
+@ManyToMany(() => Persona, { eager: true })
+@JoinTable({ name: 'desafio_invitados_creador' })
+invitadosCreador!: Persona[];
+
 // Invitados del lado desafiado (pendientes de aceptar)
 @ManyToMany(() => Persona, { eager: true })
 @JoinTable({ name: 'desafio_invitados_desafiados' })

@@ -1,10 +1,13 @@
 import { IsArray, ArrayNotEmpty, IsIn } from 'class-validator';
 
 export class AgregarJugadoresDto {
-    @IsIn(['creador', 'desafiado'])
-    lado!: 'creador' | 'desafiado';
+  @IsIn(['creador', 'desafiado'])
+  lado!: 'creador' | 'desafiado';
 
-    @IsArray()
-    @ArrayNotEmpty()
-    jugadoresIds!: string[];
+  @IsIn(['invitar', 'remover'])
+  accion!: 'invitar' | 'remover';
+
+  @IsArray()
+  @ArrayNotEmpty()
+  jugadoresIds!: string[];
 }
