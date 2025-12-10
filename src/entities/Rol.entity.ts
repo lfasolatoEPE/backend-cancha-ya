@@ -1,7 +1,10 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Usuario } from './Usuario.entity';
 
-export type TipoRol = 'sistema' | 'negocio';
+export enum TipoRol {
+  Sistema = 'sistema',
+  Negocio = 'negocio',
+}
 
 @Entity()
 export class Rol {
@@ -9,11 +12,15 @@ export class Rol {
   id!: string;
 
   @Column({ unique: true })
-  nombre!: string; // 'admin', 'usuario', 'admin-club', 'recepcionista', etc.
+  nombre!: string; // 'admin' | 'admin-club' | 'usuario' | ...
 
-  @Column({ type: 'varchar', default: 'negocio' })
-  tipo!: TipoRol; // 'sistema' o 'negocio'
-
+  @Column({
+    type: 'enum',
+    enum: TipoRol,
+    default: TipoRol.Negocio,
+  })
+  tipo!: TipoRol;
+  
   @OneToMany(() => Usuario, (usuario) => usuario.rol)
   usuarios!: Usuario[];
 }
