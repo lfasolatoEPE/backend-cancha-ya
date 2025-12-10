@@ -23,6 +23,7 @@ import reportesRoutes from './modules/reportes/reportes.routes';
 import adminRoutes from './modules/admin-panel/admin.routes';
 import personaRoutes from './modules/personas/persona.routes';
 import rankingRoutes from './modules/ranking/ranking.routes';
+import rolesRoutes from './modules/rol/rol.routes';
 import auditoriaRoutes from './modules/auditoria/auditoria.routes';
 import notifsRoutes from './modules/notifs/notifs.routes';
 
@@ -48,6 +49,7 @@ app.use('/api/perfil-competitivo', competitivoRoutes);
 app.use('/api/desafios', desafioRoutes);
 app.use('/api/ranking', rankingRoutes);
 app.use('/api/reportes', reportesRoutes);
+app.use('/api/roles', rolesRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/auditoria', auditoriaRoutes);
 app.use('/api/notifs', notifsRoutes);
