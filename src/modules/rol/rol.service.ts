@@ -1,5 +1,5 @@
 import { AppDataSource } from '../../database/data-source';
-import { Rol } from '../../entities/Rol.entity';
+import { Rol, TipoRol } from '../../entities/Rol.entity';
 import { isDuplicateError } from '../../utils/db';
 
 const rolRepo = AppDataSource.getRepository(Rol);
@@ -16,7 +16,7 @@ export class RolService {
 
     const rol = rolRepo.create({
       nombre: nombreNorm,
-      tipo: 'negocio',
+      tipo: TipoRol.Negocio,
     });
 
     try {
