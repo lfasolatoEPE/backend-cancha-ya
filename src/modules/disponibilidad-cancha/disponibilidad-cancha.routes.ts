@@ -10,16 +10,16 @@ import { authorizeRoles } from '../../middlewares/role.middleware';
 const router = Router();
 const controller = new DisponibilidadCanchaController(new DisponibilidadCanchaService());
 
-// Alta masiva de patrón semanal (cancha × horario × diaSemana)
+// Alta masiva de patrón semanal (admin global + admin-club)
 router.post(
   '/',
   authMiddleware,
-  authorizeRoles('admin'),
+  authorizeRoles('admin', 'admin-club'),
   validateDto(CrearDisponibilidadLoteDto),
   controller.crear
 );
 
-// NUEVO: disponibilidad dinámica por rango (on-the-fly)
+// Disponibilidad dinámica por rango (on-the-fly)
 router.get(
   '/availability',
   authMiddleware,
@@ -30,11 +30,11 @@ router.get(
 // Listar patrón (semanal) por cancha
 router.get('/:canchaId', authMiddleware, controller.listarPorCancha);
 
-// Borrar una fila de patrón
+// Borrar una fila de patrón (admin global + admin-club)
 router.delete(
   '/:id',
   authMiddleware,
-  authorizeRoles('admin'),
+  authorizeRoles('admin', 'admin-club'),
   controller.eliminar
 );
 

@@ -22,15 +22,29 @@ type AvailabilityQuery = {
   canchaId?: string;
 };
 
+function hasScopedClubs(clubIds?: string[]) {
+  return Array.isArray(clubIds) && clubIds.length > 0;
+}
+
 export class DisponibilidadCanchaService {
-  // Alta masiva de patrón semanal (se mantiene tal cual)
-  async crearLote({ canchaIds, horarioIds, diasSemana, disponible = true }: CrearLote) {
+  // Alta masiva de patrón semanal
+  async crearLote(
+    { canchaIds, horarioIds, diasSemana, disponible = true }: CrearLote,
+    scopeClubIds?: string[]
+  ) {
     if (!canchaIds?.length || !horarioIds?.length || !diasSemana?.length) {
       throw new Error('Debes enviar al menos una canchaId, un horarioId y un diaSemana');
     }
 
+    if (scopeClubIds && scopeClubIds.length === 0) {
+      throw new Error('No tenés clubes asignados para gestionar disponibilidades');
+    }
+
     const [canchas, horarios] = await Promise.all([
-      canchaRepo.find({ where: { id: In(canchaIds) } }),
+      canchaRepo.find({
+        where: { id: In(canchaIds) },
+        relations: ['club'], // ⬅️ importante para validar club
+      }),
       horarioRepo.find({ where: { id: In(horarioIds) } }),
     ]);
 
@@ -41,6 +55,17 @@ export class DisponibilidadCanchaService {
     if (horarios.length !== horarioIds.length) {
       const missing = horarioIds.filter(id => !horarios.find(h => h.id === id));
       throw new Error(`Horario(s) no encontrado(s): ${missing.join(', ')}`);
+    }
+
+    // 🔐 Si es admin-club, validar que todas las canchas pertenezcan a sus clubes
+    if (hasScopedClubs(scopeClubIds)) {
+      const fueraDeScope = canchas.filter(
+        c => !scopeClubIds!.includes(c.club.id)
+      );
+      if (fueraDeScope.length) {
+        const nombres = fueraDeScope.map(c => c.nombre).join(', ');
+        throw new Error(`No puedes gestionar disponibilidades de canchas fuera de tus clubes: ${nombres}`);
+      }
     }
 
     const existentes = await disponibilidadRepo.find({
@@ -103,11 +128,24 @@ export class DisponibilidadCanchaService {
     };
   }
 
-  // NUEVO: disponibilidad por rango (on-the-fly, performante)
-  async disponibilidadRango({ from, to, clubId, canchaId }: AvailabilityQuery) {
-    const params: any = { from, to, clubId: clubId ?? null, canchaId: canchaId ?? null };
+  // Disponibilidad por rango (on-the-fly, performante)
+  async disponibilidadRango(
+    { from, to, clubId, canchaId }: AvailabilityQuery,
+    scopeClubIds?: string[]
+  ) {
+    const params: any = {
+      from,
+      to,
+      clubId: clubId ?? null,
+      canchaId: canchaId ?? null,
+    };
 
-    // Nota: Postgres EXTRACT(DOW) → 0=domingo..6=sábado. Tu campo diaSemana ya usa 0=dom en el backend.
+    let extraFilter = '';
+    if (hasScopedClubs(scopeClubIds)) {
+      extraFilter = ' AND c."clubId" = ANY(:scopeClubIds)';
+      params.scopeClubIds = scopeClubIds;
+    }
+
     const sql = `
       WITH dias AS (
         SELECT gs::date AS d
@@ -130,28 +168,63 @@ export class DisponibilidadCanchaService {
         JOIN "horario" h ON h.id = dh."horarioId"
         WHERE (:clubId IS NULL OR c."clubId" = :clubId)
           AND (:canchaId IS NULL OR c.id = :canchaId)
+          ${extraFilter}
       ),
       ocupados AS (
         SELECT r."disponibilidadId", date_trunc('day', r."fechaHora")::date AS fecha
         FROM "reserva" r
         WHERE r.estado IN ('pendiente','confirmada')
       )
-      SELECT sb."canchaId", sb."canchaNombre", sb."horarioId", sb."horaInicio", sb."horaFin",
-             sb."disponibilidadId", sb.fecha::text AS fecha
+      SELECT 
+        sb."canchaId",
+        sb."canchaNombre",
+        sb."horarioId",
+        sb."horaInicio",
+        sb."horaFin",
+        sb."disponibilidadId",
+        sb.fecha::text AS fecha,
+        (o."disponibilidadId" IS NOT NULL) AS ocupado
       FROM slots_base sb
       LEFT JOIN ocupados o
         ON o."disponibilidadId" = sb."disponibilidadId"
        AND o.fecha = sb.fecha
-      WHERE o."disponibilidadId" IS NULL
       ORDER BY sb.fecha, sb."horaInicio", sb."canchaNombre";
     `;
 
-    // Devuelve: { fecha, canchaId, canchaNombre, horarioId, horaInicio, horaFin, disponibilidadId }
-    return await AppDataSource.query(sql, params);
+    const rows = await AppDataSource.query(sql, params);
+
+    return rows.map((r: any) => {
+      const ocupado =
+        r.ocupado === true || r.ocupado === 't' || r.ocupado === 1;
+
+      return {
+        fecha: r.fecha,                 // 'YYYY-MM-DD'
+        canchaId: r.canchaId,
+        canchaNombre: r.canchaNombre,
+        horarioId: r.horarioId,
+        horaInicio: r.horaInicio,       // 'HH:MM:SS'
+        horaFin: r.horaFin,
+        disponibilidadId: r.disponibilidadId,
+        ocupado,
+        estado: ocupado ? 'ocupado' : 'libre',
+      };
+    });
   }
 
-  // ——— EXISTENTES ———
-  async listarPorCancha(canchaId: string) {
+
+  async listarPorCancha(canchaId: string, scopeClubIds?: string[]) {
+    // si es admin-club, validar que la cancha esté dentro de sus clubes
+    if (hasScopedClubs(scopeClubIds)) {
+      const cancha = await canchaRepo.findOne({
+        where: { id: canchaId },
+        relations: ['club'],
+      });
+      if (!cancha) throw new Error('Cancha no encontrada');
+      if (!scopeClubIds!.includes(cancha.club.id)) {
+        throw new Error('No puedes ver disponibilidades de canchas fuera de tus clubes');
+      }
+    }
+
     return await disponibilidadRepo.find({
       where: { cancha: { id: canchaId } },
       relations: ['horario'],
@@ -159,9 +232,19 @@ export class DisponibilidadCanchaService {
     });
   }
 
-  async eliminar(id: string) {
-    const disponibilidad = await disponibilidadRepo.findOneBy({ id });
+  async eliminar(id: string, scopeClubIds?: string[]) {
+    const disponibilidad = await disponibilidadRepo.findOne({
+      where: { id },
+      relations: ['cancha', 'cancha.club'],
+    });
     if (!disponibilidad) throw new Error('Disponibilidad no encontrada');
+
+    if (hasScopedClubs(scopeClubIds)) {
+      if (!scopeClubIds!.includes(disponibilidad.cancha.club.id)) {
+        throw new Error('No puedes eliminar disponibilidades de canchas fuera de tus clubes');
+      }
+    }
+
     return await disponibilidadRepo.remove(disponibilidad);
   }
 }
