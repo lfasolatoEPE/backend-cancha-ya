@@ -71,13 +71,13 @@ export class UsuarioController {
   };
 
   cambiarRol = async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const dto = req.body as CambiarRolDto;
-      const out = await this.service.cambiarRol(id, dto.rol);
-      res.json(out);
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
-    }
-  };
+  try {
+    const { id } = req.params;
+    const dto = req.body as CambiarRolDto;
+    const out = await this.service.cambiarRol(id, dto.rol, dto.clubIds);
+    res.json(out);
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+};
 }

@@ -1,6 +1,7 @@
 import { AppDataSource } from '../../database/data-source';
 import { Usuario } from '../../entities/Usuario.entity';
 import { Persona } from '../../entities/Persona.entity';
+import { Club } from '../../entities/Club.entity';
 import { Rol } from '../../entities/Rol.entity';
 import { PerfilCompetitivo } from '../../entities/PerfilCompetitivo.entity';
 import bcrypt from 'bcryptjs';
@@ -10,6 +11,7 @@ const usuarioRepo = AppDataSource.getRepository(Usuario);
 const personaRepo = AppDataSource.getRepository(Persona);
 const rolRepo = AppDataSource.getRepository(Rol);
 const perfilRepo = AppDataSource.getRepository(PerfilCompetitivo);
+const clubRepo = AppDataSource.getRepository(Club);
 
 export class UsuarioService {
   async crearUsuario(data: {
@@ -18,8 +20,9 @@ export class UsuarioService {
     email: string;
     password: string;
     rol?: string;
+    clubIds?: string[];
   }) {
-    const { nombre, apellido, password } = data;
+    const { nombre, apellido, password, clubIds } = data;
     const email = normEmail(data.email);
     const rolNombre = data.rol ?? 'usuario';
 
@@ -50,8 +53,21 @@ export class UsuarioService {
           failedLoginAttempts: 0,
           lastLoginAt: null,
         });
+        (usuario as any).adminClubs = [];
         await usuarioRepoT.save(usuario);
+        // si es admin-club y vinieron clubIds, asociar clubes
+        if (rolNombre === 'admin-club' && clubIds && clubIds.length > 0) {
+          const clubs = await manager.getRepository(Club).find({
+            where: clubIds.map((id) => ({ id })),
+          });
 
+          if (clubs.length !== clubIds.length) {
+            throw new Error('Uno o más clubes no existen');
+          }
+
+          (usuario as any).adminClubs = clubs;
+          await usuarioRepoT.save(usuario);
+        }
         // Perfil competitivo inicial (si aplica a tu negocio)
         const perfil = perfilRepoT.create({
           usuario,
@@ -111,6 +127,7 @@ export class UsuarioService {
         email: u.persona.email,
       },
       rol: u.rol.nombre,
+      adminClubs: u.adminClubs?.map(c => ({ id: c.id, nombre: c.nombre })) ?? [],
       createdAt: u.createdAt,
       updatedAt: u.updatedAt,
     }));
@@ -144,16 +161,43 @@ export class UsuarioService {
     };
   }
 
-  async cambiarRol(userId: string, nuevoRol: 'usuario' | 'admin') {
-    const usuario = await usuarioRepo.findOne({ where: { id: userId }, relations: ['rol'] });
+  async cambiarRol(
+    userId: string,
+    nuevoRol: 'usuario' | 'admin' | 'admin-club',
+    clubIds?: string[]
+  ) {
+    const usuario = await usuarioRepo.findOne({
+      where: { id: userId },
+      relations: ['rol', 'adminClubs'],
+    });
     if (!usuario) throw new Error('Usuario no encontrado');
 
     const rolEntity = await rolRepo.findOne({ where: { nombre: nuevoRol } });
     if (!rolEntity) throw new Error('Rol no válido');
 
     usuario.rol = rolEntity;
+
+    // resetear relaciones de adminClubs
+    usuario.adminClubs = [];
+
+    if (nuevoRol === 'admin-club' && clubIds && clubIds.length > 0) {
+      const clubs = await clubRepo.find({
+        where: clubIds.map((id) => ({ id })),
+      });
+
+      if (clubs.length !== clubIds.length) {
+        throw new Error('Uno o más clubes no existen');
+      }
+
+      usuario.adminClubs = clubs;
+    }
+
     await usuarioRepo.save(usuario);
 
-    return { id: usuario.id, rol: usuario.rol.nombre };
-  }
+    return {
+      id: usuario.id,
+      rol: usuario.rol.nombre,
+      adminClubs: usuario.adminClubs?.map(c => ({ id: c.id, nombre: c.nombre })) ?? [],
+    }
+  };
 }
