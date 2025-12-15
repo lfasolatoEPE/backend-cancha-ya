@@ -58,18 +58,28 @@ export class UsuarioService {
         (usuario as any).adminClubs = [];
         await usuarioRepoT.save(usuario);
         // si es admin-club y vinieron clubIds, asociar clubes
-        if (rolNombre === 'admin-club' && clubIds && clubIds.length > 0) {
+        // ✅ Si se crea con rol admin-club → clubIds obligatorio
+        if (rolNombre === 'admin-club') {
+          if (!clubIds || clubIds.length === 0) {
+            throw new Error('Para crear un usuario admin-club debes asignar al menos un club (clubIds).');
+          }
+
           const clubs = await manager.getRepository(Club).find({
-            where: clubIds.map((id) => ({ id })),
+            where: { id: In(clubIds) },
           });
 
           if (clubs.length !== clubIds.length) {
-            throw new Error('Uno o más clubes no existen');
+            const missing = clubIds.filter(id => !clubs.find(c => c.id === id));
+            throw new Error(`Club(s) no encontrado(s): ${missing.join(', ')}`);
           }
 
           (usuario as any).adminClubs = clubs;
           await usuarioRepoT.save(usuario);
+        } else {
+          // si NO es admin-club, por seguridad limpiamos clubes
+          (usuario as any).adminClubs = [];
         }
+
         // Perfil competitivo inicial (si aplica a tu negocio)
         const perfil = perfilRepoT.create({
           usuario,
@@ -182,16 +192,21 @@ export class UsuarioService {
     // resetear relaciones de adminClubs
     usuario.adminClubs = [];
 
-    if (nuevoRol === 'admin-club' && clubIds && clubIds.length > 0) {
-      const clubs = await clubRepo.find({
-        where: clubIds.map((id) => ({ id })),
-      });
+    if (nuevoRol === 'admin-club') {
+      if (!clubIds || clubIds.length === 0) {
+        throw new Error('Para asignar rol admin-club debes enviar clubIds (al menos 1 club).');
+      }
+
+      const clubs = await clubRepo.find({ where: { id: In(clubIds) } });
 
       if (clubs.length !== clubIds.length) {
-        throw new Error('Uno o más clubes no existen');
+        const missing = clubIds.filter(id => !clubs.find(c => c.id === id));
+        throw new Error(`Club(s) no encontrado(s): ${missing.join(', ')}`);
       }
 
       usuario.adminClubs = clubs;
+    } else {
+      usuario.adminClubs = [];
     }
 
     await usuarioRepo.save(usuario);
@@ -211,7 +226,7 @@ export class UsuarioService {
   }) {
     const { targetUserId, actorUserId, nivelAcceso, clubIds } = opts;
 
-    // ✅ No permitir que un admin se baje a sí mismo
+    // 🔒 No permitir auto-degradación
     if (targetUserId === actorUserId) {
       throw new Error('No puedes cambiar tu propio nivel de acceso');
     }
@@ -222,8 +237,8 @@ export class UsuarioService {
     });
     if (!user) throw new Error('Usuario no encontrado');
 
-    // ✅ Validación fuerte para admin-club
-    if (nivelAcceso === 'admin-club') {
+    // 🔐 Admin-club REQUIERE clubes
+    if (nivelAcceso === NivelAcceso.AdminClub) {
       if (!clubIds || clubIds.length === 0) {
         throw new Error('Para admin-club debes enviar clubIds');
       }
@@ -234,10 +249,10 @@ export class UsuarioService {
         throw new Error(`Club(s) no encontrado(s): ${missing.join(', ')}`);
       }
 
-      user.nivelAcceso = nivelAcceso;
+      user.nivelAcceso = NivelAcceso.AdminClub;
       user.adminClubs = clubs;
     } else {
-      // usuario o admin => limpiar scope
+      // usuario o admin global → sin scope
       user.nivelAcceso = nivelAcceso;
       user.adminClubs = [];
     }
@@ -246,11 +261,11 @@ export class UsuarioService {
 
     return {
       id: saved.id,
-      personaId: saved.persona?.id,
-      email: saved.persona?.email,
-      rol: saved.rol?.nombre,
+      email: saved.persona.email,
+      rol: saved.rol.nombre,
       nivelAcceso: saved.nivelAcceso,
-      clubIds: Array.isArray(saved.adminClubs) ? saved.adminClubs.map(c => c.id) : [],
+      clubIds: saved.adminClubs.map(c => c.id),
     };
   }
+
 }
