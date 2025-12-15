@@ -1,12 +1,9 @@
-import { NextFunction, Request, RequestHandler, Response } from 'express';
+import { Request, Response } from 'express';
 import { UsuarioService } from './usuario.service';
 import { CrearUsuarioDto } from './dto/crear-usuario.dto';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
 import { CambiarRolDto } from './dto/cambiar-rol.dto';
 import { isDuplicateError } from '../../utils/db';
-import { ParamsDictionary } from 'express-serve-static-core';
-import { ParsedQs } from 'qs';
-import { PatchNivelAccesoDto } from './dto/patch-nivel-acceso.dto';
 
 export class UsuarioController {
   constructor(private service: UsuarioService) {}
@@ -81,31 +78,6 @@ export class UsuarioController {
       res.json(out);
     } catch (e: any) {
       res.status(400).json({ error: e.message });
-    }
-  };
-
-  actualizarNivelAcceso = async (req: Request, res: Response): Promise<void> => {
-    try {
-      const token = (req as any).user as { id: string } | undefined;
-      if (!token?.id) {
-        res.status(401).json({ error: 'No autenticado' });
-        return;
-      }
-
-      const dto = req.body as PatchNivelAccesoDto;
-
-      const out = await this.service.actualizarNivelAcceso({
-        targetUserId: req.params.id,
-        actorUserId: token.id,
-        nivelAcceso: dto.nivelAcceso,
-        clubIds: dto.clubIds,
-      });
-
-      res.status(200).json(out);
-      return;
-    } catch (e: any) {
-      res.status(400).json({ error: e.message });
-      return;
     }
   };
 }

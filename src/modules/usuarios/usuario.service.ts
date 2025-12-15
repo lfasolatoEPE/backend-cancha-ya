@@ -28,24 +28,37 @@ export class UsuarioService {
     const email = normEmail(data.email);
     const rolNombre = data.rol ?? 'usuario';
 
-    // Todo-or-nada en transacción
     try {
-      const result = await AppDataSource.transaction(async (manager) => {
+      return await AppDataSource.transaction(async (manager) => {
         const personaRepoT = manager.getRepository(Persona);
         const usuarioRepoT = manager.getRepository(Usuario);
         const rolRepoT = manager.getRepository(Rol);
         const perfilRepoT = manager.getRepository(PerfilCompetitivo);
+        const clubRepoT = manager.getRepository(Club);
 
+        // 1) Email único
         const emailUsado = await personaRepoT.findOne({ where: { email } });
         if (emailUsado) throw new Error('El email ya está registrado');
 
+        // 2) Rol válido
+        const rolEntity = await rolRepoT.findOne({ where: { nombre: rolNombre } });
+        if (!rolEntity) throw new Error('Rol no válido');
+
+        // 3) Si el rol hereda AdminClub => clubIds obligatorio
+        if (rolEntity.nivelAcceso === NivelAcceso.AdminClub) {
+          if (!clubIds || clubIds.length === 0) {
+            throw new Error(
+              'Para crear un usuario con acceso admin-club debes asignar al menos un club (clubIds).'
+            );
+          }
+        }
+
+        // 4) Crear Persona
         const persona = personaRepoT.create({ nombre, apellido, email });
         await personaRepoT.save(persona);
 
+        // 5) Crear Usuario
         const passwordHash = await bcrypt.hash(password, 12);
-
-        const rolEntity = await rolRepoT.findOne({ where: { nombre: rolNombre } });
-        if (!rolEntity) throw new Error('Rol no válido');
 
         const usuario = usuarioRepoT.create({
           passwordHash,
@@ -54,33 +67,26 @@ export class UsuarioService {
           activo: true,
           failedLoginAttempts: 0,
           lastLoginAt: null,
+          adminClubs: [],
         });
-        (usuario as any).adminClubs = [];
-        await usuarioRepoT.save(usuario);
-        // si es admin-club y vinieron clubIds, asociar clubes
-        // ✅ Si se crea con rol admin-club → clubIds obligatorio
-        if (rolNombre === 'admin-club') {
-          if (!clubIds || clubIds.length === 0) {
-            throw new Error('Para crear un usuario admin-club debes asignar al menos un club (clubIds).');
-          }
 
-          const clubs = await manager.getRepository(Club).find({
-            where: { id: In(clubIds) },
-          });
+        // 6) Asignar clubes si corresponde
+        if (rolEntity.nivelAcceso === NivelAcceso.AdminClub) {
+          const clubs = await clubRepoT.find({ where: { id: In(clubIds!) } });
 
-          if (clubs.length !== clubIds.length) {
-            const missing = clubIds.filter(id => !clubs.find(c => c.id === id));
+          if (clubs.length !== clubIds!.length) {
+            const missing = clubIds!.filter((id) => !clubs.find((c) => c.id === id));
             throw new Error(`Club(s) no encontrado(s): ${missing.join(', ')}`);
           }
 
-          (usuario as any).adminClubs = clubs;
-          await usuarioRepoT.save(usuario);
+          usuario.adminClubs = clubs;
         } else {
-          // si NO es admin-club, por seguridad limpiamos clubes
-          (usuario as any).adminClubs = [];
+          usuario.adminClubs = [];
         }
 
-        // Perfil competitivo inicial (si aplica a tu negocio)
+        await usuarioRepoT.save(usuario);
+
+        // 7) Perfil competitivo inicial (si aplica)
         const perfil = perfilRepoT.create({
           usuario,
           activo: false,
@@ -88,6 +94,7 @@ export class UsuarioService {
         });
         await perfilRepoT.save(perfil);
 
+        // 8) Respuesta
         return {
           id: usuario.id,
           persona: {
@@ -97,10 +104,11 @@ export class UsuarioService {
             email: persona.email,
           },
           rol: rolEntity.nombre,
+          nivelAcceso: rolEntity.nivelAcceso,
+          adminClubs: (usuario.adminClubs ?? []).map((c) => ({ id: c.id, nombre: c.nombre })),
+          clubIds: (usuario.adminClubs ?? []).map((c) => c.id),
         };
       });
-
-      return result;
     } catch (err) {
       if (isDuplicateError(err)) {
         throw new Error('El email ya está registrado');
@@ -175,97 +183,52 @@ export class UsuarioService {
 
   async cambiarRol(
     userId: string,
-    nuevoRol: 'usuario' | 'admin' | 'admin-club',
+    nuevoRol: string, // 👈 ahora es cualquier nombre de rol válido en BD
     clubIds?: string[]
   ) {
     const usuario = await usuarioRepo.findOne({
       where: { id: userId },
-      relations: ['rol', 'adminClubs'],
+      relations: ['rol', 'adminClubs', 'persona'],
     });
     if (!usuario) throw new Error('Usuario no encontrado');
 
     const rolEntity = await rolRepo.findOne({ where: { nombre: nuevoRol } });
     if (!rolEntity) throw new Error('Rol no válido');
 
-    usuario.rol = rolEntity;
-
-    // resetear relaciones de adminClubs
-    usuario.adminClubs = [];
-
-    if (nuevoRol === 'admin-club') {
+    // ✅ Regla: si el rol hereda AdminClub => clubes obligatorios
+    if (rolEntity.nivelAcceso === NivelAcceso.AdminClub) {
       if (!clubIds || clubIds.length === 0) {
-        throw new Error('Para asignar rol admin-club debes enviar clubIds (al menos 1 club).');
+        throw new Error('Para asignar un rol con acceso admin-club debes enviar clubIds (al menos 1 club).');
       }
 
       const clubs = await clubRepo.find({ where: { id: In(clubIds) } });
 
       if (clubs.length !== clubIds.length) {
-        const missing = clubIds.filter(id => !clubs.find(c => c.id === id));
+        const missing = clubIds.filter((id) => !clubs.find((c) => c.id === id));
         throw new Error(`Club(s) no encontrado(s): ${missing.join(', ')}`);
       }
 
       usuario.adminClubs = clubs;
     } else {
+      // cualquier otro nivel => sin scope
       usuario.adminClubs = [];
     }
 
-    await usuarioRepo.save(usuario);
+    usuario.rol = rolEntity;
 
-    return {
-      id: usuario.id,
-      rol: usuario.rol.nombre,
-      adminClubs: usuario.adminClubs?.map(c => ({ id: c.id, nombre: c.nombre })) ?? [],
-    }
-  };
+    // ✅ Si todavía existe usuario.nivelAcceso como columna, sincronizalo
+    // (si lo eliminás del entity, borrá esta línea)
+    (usuario as any).nivelAcceso = rolEntity.nivelAcceso;
 
-  async actualizarNivelAcceso(opts: {
-    targetUserId: string;
-    actorUserId: string;
-    nivelAcceso: NivelAcceso;
-    clubIds?: string[];
-  }) {
-    const { targetUserId, actorUserId, nivelAcceso, clubIds } = opts;
-
-    // 🔒 No permitir auto-degradación
-    if (targetUserId === actorUserId) {
-      throw new Error('No puedes cambiar tu propio nivel de acceso');
-    }
-
-    const user = await usuarioRepo.findOne({
-      where: { id: targetUserId },
-      relations: ['persona', 'rol', 'adminClubs'],
-    });
-    if (!user) throw new Error('Usuario no encontrado');
-
-    // 🔐 Admin-club REQUIERE clubes
-    if (nivelAcceso === NivelAcceso.AdminClub) {
-      if (!clubIds || clubIds.length === 0) {
-        throw new Error('Para admin-club debes enviar clubIds');
-      }
-
-      const clubs = await clubRepo.find({ where: { id: In(clubIds) } });
-      if (clubs.length !== clubIds.length) {
-        const missing = clubIds.filter(id => !clubs.find(c => c.id === id));
-        throw new Error(`Club(s) no encontrado(s): ${missing.join(', ')}`);
-      }
-
-      user.nivelAcceso = NivelAcceso.AdminClub;
-      user.adminClubs = clubs;
-    } else {
-      // usuario o admin global → sin scope
-      user.nivelAcceso = nivelAcceso;
-      user.adminClubs = [];
-    }
-
-    const saved = await usuarioRepo.save(user);
+    const saved = await usuarioRepo.save(usuario);
 
     return {
       id: saved.id,
-      email: saved.persona.email,
+      email: saved.persona?.email,
       rol: saved.rol.nombre,
-      nivelAcceso: saved.nivelAcceso,
-      clubIds: saved.adminClubs.map(c => c.id),
+      nivelAcceso: saved.rol.nivelAcceso, // 👈 viene del rol
+      adminClubs: (saved.adminClubs ?? []).map((c) => ({ id: c.id, nombre: c.nombre })),
+      clubIds: (saved.adminClubs ?? []).map((c) => c.id),
     };
   }
-
 }

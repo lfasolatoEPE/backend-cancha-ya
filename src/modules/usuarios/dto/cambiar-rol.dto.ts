@@ -1,11 +1,12 @@
-import { IsIn, IsOptional, IsArray, IsUUID } from 'class-validator';
+import { IsArray, IsOptional, IsString, IsUUID, ArrayNotEmpty } from 'class-validator';
 
 export class CambiarRolDto {
-  @IsIn(['usuario', 'admin', 'admin-club'])
-  rol!: 'usuario' | 'admin' | 'admin-club';
+  @IsString()
+  rol!: string; // nombre del rol en BD (admin, usuario, recepcionista, admin-club, etc.)
 
   @IsOptional()
   @IsArray()
-  @IsUUID('all', { each: true })
+  @ArrayNotEmpty()
+  @IsUUID('4', { each: true })
   clubIds?: string[];
 }

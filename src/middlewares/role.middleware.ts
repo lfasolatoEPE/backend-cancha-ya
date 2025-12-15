@@ -4,23 +4,35 @@ import { NivelAcceso } from '../entities/Rol.entity';
 // acepta nombres de rol ("admin", "recepcionista") o niveles ("admin-club", "admin", "usuario")
 type RoleOrAccess = string | NivelAcceso;
 
+type JwtUser = {
+  id: string;
+  personaId?: string;
+  email?: string;
+
+  // puede venir como string (token viejo o nuevo)
+  rol?: string;
+
+  // viene del JWT (derivado de rol.nivelAcceso en el backend al firmar token)
+  nivelAcceso?: NivelAcceso;
+
+  // scope para admin-club
+  clubIds?: string[];
+};
+
 export const authorizeRoles = (...allowed: RoleOrAccess[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
-    const user = (req as any).user;
+    const user = (req as any).user as JwtUser | undefined;
 
     if (!user) {
       res.status(401).json({ error: 'No autenticado' });
       return;
     }
 
-    // Compatibilidad:
-    // - user.rol puede ser string (token viejo) o nombre de rol (token nuevo)
-    // - user.nivelAcceso es el “scope real” en el nuevo modelo
     const rolNombre = typeof user.rol === 'string' ? user.rol : undefined;
-    const nivelAcceso = user.nivelAcceso as NivelAcceso | undefined;
+    const nivelAcceso = user.nivelAcceso;
 
     const ok =
-      allowed.includes(rolNombre ?? '') ||
+      (rolNombre ? allowed.includes(rolNombre) : false) ||
       (nivelAcceso ? allowed.includes(nivelAcceso) : false);
 
     if (!ok) {
@@ -32,5 +44,6 @@ export const authorizeRoles = (...allowed: RoleOrAccess[]) => {
   };
 };
 
-// Si querés un helper “estricto” para nivelAcceso, lo dejás también:
-export const authorizeAccess = (...niveles: NivelAcceso[]) => authorizeRoles(...niveles);
+// helper “estricto” para nivelAcceso:
+export const authorizeAccess = (...niveles: NivelAcceso[]) =>
+  authorizeRoles(...niveles);

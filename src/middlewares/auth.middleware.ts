@@ -1,10 +1,21 @@
 import { RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
+import { NivelAcceso } from '../entities/Rol.entity';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error('Falta JWT_SECRET en variables de entorno');
 }
+
+type JwtPayload = {
+  sub?: string;
+  id?: string;
+  personaId?: string;
+  email?: string;
+  rol?: string;               // nombre del rol (informativo)
+  nivelAcceso?: NivelAcceso;  // viene de rol.nivelAcceso
+  clubIds?: string[];         // scope admin-club
+};
 
 export const authMiddleware: RequestHandler = (req, res, next) => {
   const header = req.headers.authorization || req.headers.Authorization;
@@ -17,15 +28,22 @@ export const authMiddleware: RequestHandler = (req, res, next) => {
   }
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as any;
+    const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
+
+    // 🔐 normalización defensiva
+    const userId = payload.sub ?? payload.id;
+    if (!userId) {
+      res.status(401).json({ error: 'Token inválido (sin subject)' });
+      return;
+    }
 
     (req as any).user = {
-      id: payload.sub ?? payload.id,
+      id: userId,
       personaId: payload.personaId,
       email: payload.email,
-      rol: payload.rol,
-      nivelAcceso: payload.nivelAcceso,
-      clubIds: payload.clubIds ?? [],
+      rol: payload.rol, // informativo
+      nivelAcceso: payload.nivelAcceso ?? NivelAcceso.Usuario,
+      clubIds: Array.isArray(payload.clubIds) ? payload.clubIds : [],
     };
 
     next();

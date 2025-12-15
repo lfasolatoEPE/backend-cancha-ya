@@ -5,12 +5,10 @@ import { validateDto } from '../../utils/validate';
 import { CrearUsuarioDto } from './dto/crear-usuario.dto';
 import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto';
 import { authMiddleware } from '../../middlewares/auth.middleware';
-import { authorizeAccess, authorizeRoles } from '../../middlewares/role.middleware';
+import { authorizeRoles } from '../../middlewares/role.middleware';
 import { CambiarRolDto } from './dto/cambiar-rol.dto';
 import { AppDataSource } from '../../database/data-source';
 import { Usuario } from '../../entities/Usuario.entity';
-import { PatchNivelAccesoDto } from './dto/patch-nivel-acceso.dto';
-import { NivelAcceso } from '../../entities/Rol.entity';
 
 const router = Router();
 const controller = new UsuarioController(new UsuarioService());
@@ -70,14 +68,5 @@ router.patch(
     validateDto(CambiarRolDto),
     controller.cambiarRol
   );
-
-  router.patch(
-    '/:id/nivel-acceso',
-    authMiddleware,
-    authorizeAccess(NivelAcceso.Admin),
-    validateDto(PatchNivelAccesoDto),
-    controller.actualizarNivelAcceso
-  );
-
 
 export default router;

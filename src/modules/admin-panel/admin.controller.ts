@@ -4,111 +4,150 @@ import { NivelAcceso } from '../../entities/Rol.entity';
 
 type JwtUser = {
   id: string;
-  rol: string; // nombre del rol (informativo)
-  nivelAcceso: NivelAcceso; // <- ESTE MANDA
-  personaId: string;
-  email: string;
-  clubIds?: string[];
+  personaId?: string;
+  email?: string;
+
+  rol?: string; // informativo
+  nivelAcceso?: NivelAcceso; // viene del JWT (desde rol.nivelAcceso)
+  clubIds?: string[]; // scope admin-club
 };
 
 export class AdminController {
   constructor(private service: AdminService) {}
 
-  /** Obtiene el alcance de clubes según el rol */
+  /** Obtiene el alcance de clubes según el nivel de acceso del JWT */
   private getScope(req: Request): { clubIds?: string[] } {
     const user = (req as any).user as JwtUser | undefined;
     if (!user) return {};
 
     if (user.nivelAcceso === NivelAcceso.AdminClub) {
+      // si llega vacío => admin-club sin scope (no debería pasar si backend valida)
       return { clubIds: user.clubIds ?? [] };
     }
 
-    // admin global
+    // admin global: sin restricción
     return {};
   }
 
-  resumenGeneral = async (req: Request, res: Response) => {
-    const scope = this.getScope(req);
-    const resumen = await this.service.obtenerResumenGeneral(scope);
-    res.json(resumen);
+  resumenGeneral = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const scope = this.getScope(req);
+      const resumen = await this.service.obtenerResumenGeneral(scope);
+      res.json(resumen);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message ?? 'Error en resumenGeneral' });
+    }
   };
 
-  topJugadores = async (req: Request, res: Response) => {
-    const scope = this.getScope(req);
-    const { from, to, tz } = req.query as any;
-    const data = await this.service.obtenerTopJugadores({ from, to, tz, ...scope });
-    res.json(data);
+  topJugadores = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const scope = this.getScope(req);
+      const { from, to, tz } = req.query as any;
+      const data = await this.service.obtenerTopJugadores({ from, to, tz, ...scope });
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message ?? 'Error en topJugadores' });
+    }
   };
 
-  canchasMasUsadas = async (req: Request, res: Response) => {
-    const scope = this.getScope(req);
-    const { from, to, tz, clubId } = req.query as any;
-    const data = await this.service.obtenerCanchasMasUsadas({
-      from,
-      to,
-      tz,
-      clubId,
-      ...scope,
-    });
-    res.json(data);
+  canchasMasUsadas = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const scope = this.getScope(req);
+      const { from, to, tz, clubId } = req.query as any;
+      const data = await this.service.obtenerCanchasMasUsadas({ from, to, tz, clubId, ...scope });
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message ?? 'Error en canchasMasUsadas' });
+    }
   };
 
-  personasConDeuda = async (req: Request, res: Response) => {
-    const scope = this.getScope(req);
-    const personas = await this.service.obtenerPersonasConDeuda(scope);
-    res.json(personas);
+  personasConDeuda = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const scope = this.getScope(req);
+      const personas = await this.service.obtenerPersonasConDeuda(scope);
+      res.json(personas);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message ?? 'Error en personasConDeuda' });
+    }
   };
 
-  // EXISTENTES
-  aggregates = async (req: Request, res: Response) => {
-    const scope = this.getScope(req);
-    const data = await this.service.reservasAggregate({ ...(req.query as any), ...scope });
-    res.json(data);
+  aggregates = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const scope = this.getScope(req);
+      const data = await this.service.reservasAggregate({ ...(req.query as any), ...scope });
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message ?? 'Error en aggregates' });
+    }
   };
 
-  drilldown = async (req: Request, res: Response) => {
-    const scope = this.getScope(req);
-    const data = await this.service.reservasDrilldown({ ...(req.query as any), ...scope });
-    res.json(data);
+  drilldown = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const scope = this.getScope(req);
+      const data = await this.service.reservasDrilldown({ ...(req.query as any), ...scope });
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message ?? 'Error en drilldown' });
+    }
   };
 
-  ocupacion = async (req: Request, res: Response) => {
-    const scope = this.getScope(req);
-    const data = await this.service.ocupacion({ ...(req.query as any), ...scope });
-    res.json(data);
+  ocupacion = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const scope = this.getScope(req);
+      const data = await this.service.ocupacion({ ...(req.query as any), ...scope });
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message ?? 'Error en ocupacion' });
+    }
   };
 
-  heatmap = async (req: Request, res: Response) => {
-    const scope = this.getScope(req);
-    const data = await this.service.heatmap({ ...(req.query as any), ...scope });
-    res.json(data);
+  heatmap = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const scope = this.getScope(req);
+      const data = await this.service.heatmap({ ...(req.query as any), ...scope });
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message ?? 'Error en heatmap' });
+    }
   };
 
-  // NUEVO: tendencia de ocupación (time-series)
-  ocupacionTrend = async (req: Request, res: Response) => {
-    const scope = this.getScope(req);
-    const data = await this.service.ocupacionTrend({ ...(req.query as any), ...scope });
-    res.json(data);
+  ocupacionTrend = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const scope = this.getScope(req);
+      const data = await this.service.ocupacionTrend({ ...(req.query as any), ...scope });
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message ?? 'Error en ocupacionTrend' });
+    }
   };
 
-  // NUEVO: tendencia de ingresos
-  revenueTrend = async (req: Request, res: Response) => {
-    const scope = this.getScope(req);
-    const data = await this.service.revenueTrend({ ...(req.query as any), ...scope });
-    res.json(data);
+  revenueTrend = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const scope = this.getScope(req);
+      const data = await this.service.revenueTrend({ ...(req.query as any), ...scope });
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message ?? 'Error en revenueTrend' });
+    }
   };
 
-  // NUEVO: tendencia de usuarios
-  usuariosTrend = async (req: Request, res: Response) => {
-    const scope = this.getScope(req);
-    const data = await this.service.usuariosTrend({ ...(req.query as any), ...scope });
-    res.json(data);
+  usuariosTrend = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const scope = this.getScope(req);
+      const data = await this.service.usuariosTrend({ ...(req.query as any), ...scope });
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message ?? 'Error en usuariosTrend' });
+    }
   };
 
-  // NUEVO: segmentación de usuarios (RFM simple)
-  segmentacionUsuarios = async (req: Request, res: Response) => {
-    const scope = this.getScope(req);
-    const data = await this.service.segmentacionUsuarios(scope);
-    res.json(data);
+  segmentacionUsuarios = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const scope = this.getScope(req);
+      const data = await this.service.segmentacionUsuarios(scope);
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message ?? 'Error en segmentacionUsuarios' });
+    }
   };
 }

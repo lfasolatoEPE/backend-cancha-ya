@@ -35,19 +35,17 @@ export class AuthService {
   
   private signAccessToken(user: Usuario) {
     const rolNombre = user.rol?.nombre;
-    const nivelAcceso = (user as any).nivelAcceso ?? (user.rol?.nivelAcceso as NivelAcceso | undefined);
+    const nivelAcceso = user.rol?.nivelAcceso as NivelAcceso | undefined;
 
-    const clubIds = Array.isArray(user.adminClubs)
-      ? user.adminClubs.map((c) => c.id)
-      : [];
+    const clubIds = Array.isArray(user.adminClubs) ? user.adminClubs.map(c => c.id) : [];
 
     const payload = {
       id: user.id,
       personaId: user.persona.id,
       email: user.persona.email,
-      rol: rolNombre,            // "recepcionista", "admin", etc (informativo)
-      nivelAcceso,               // "usuario" | "admin-club" | "admin" (lo que manda)
-      clubIds,                   // scope para admin-club
+      rol: rolNombre,
+      nivelAcceso,   // SIEMPRE desde el rol
+      clubIds,
     };
 
     return jwt.sign(payload, JWT_SECRET!, {

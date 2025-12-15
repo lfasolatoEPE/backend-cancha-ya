@@ -38,9 +38,6 @@ export class Usuario {
   @JoinColumn()
   rol!: Rol;
 
-  @Column({ type: 'enum', enum: NivelAcceso, default: NivelAcceso.Usuario })
-  nivelAcceso!: NivelAcceso;
-
   // ⬅️ NUEVO: clubes que administra (solo para rol 'admin-club')
   @ManyToMany(() => Club, (club) => club.adminUsers, { eager: true })
   @JoinTable({

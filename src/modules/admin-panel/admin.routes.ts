@@ -8,9 +8,7 @@ import { NivelAcceso } from '../../entities/Rol.entity';
 const router = Router();
 const controller = new AdminController(new AdminService());
 
-
 router.use(authMiddleware, authorizeAccess(NivelAcceso.Admin, NivelAcceso.AdminClub));
-
 
 router.get('/resumen', controller.resumenGeneral);
 router.get('/top-jugadores', controller.topJugadores);
