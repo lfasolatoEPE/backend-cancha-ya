@@ -2,10 +2,12 @@ import { Request, Response } from 'express';
 import { DisponibilidadCanchaService } from './disponibilidad-cancha.service';
 import { CrearDisponibilidadLoteDto } from './dto/crear-disponibilidad-lote.dto';
 import { AvailabilityQueryDto } from './dto/availability-query.dto';
+import { NivelAcceso } from '../../entities/Rol.entity';
 
 type JwtUser = {
   id: string;
-  rol: string;
+  rol: string; // informativo
+  nivelAcceso: NivelAcceso;
   personaId: string;
   email: string;
   clubIds?: string[];
@@ -14,13 +16,14 @@ type JwtUser = {
 export class DisponibilidadCanchaController {
   constructor(private service: DisponibilidadCanchaService) {}
 
-  /** Alcance de clubes según rol */
   private getScope(req: Request): { clubIds?: string[] } {
     const user = (req as any).user as JwtUser | undefined;
     if (!user) return {};
-    if (user.rol === 'admin-club') {
+
+    if (user.nivelAcceso === NivelAcceso.AdminClub) {
       return { clubIds: user.clubIds ?? [] };
     }
+
     return {}; // admin global → sin filtro
   }
 
@@ -35,7 +38,6 @@ export class DisponibilidadCanchaController {
     }
   };
 
-  // Disponibilidad por rango (sin generar filas por fecha)
   disponibilidadRango = async (req: Request, res: Response) => {
     try {
       const dto = req.query as unknown as AvailabilityQueryDto;

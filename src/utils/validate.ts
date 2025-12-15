@@ -7,19 +7,43 @@ export const validateDto = (
   source: 'body' | 'query' | 'params' = 'body'
 ) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const data = req[source];
-    const dto = plainToInstance(dtoClass, data, { enableImplicitConversion: true });
-    const errors = await validate(dto, {
-      whitelist: true,
-      forbidNonWhitelisted: true,
-    });
-    if (errors.length > 0) {
-      const mensajes = errors.flatMap(err => Object.values(err.constraints || {}));
-      res.status(400).json({ errors: mensajes });
-      return;
+    try {
+      // 🔒 EVITA undefined / null
+      const raw = req[source] ?? {};
+
+      const dto = plainToInstance(dtoClass, raw, {
+        enableImplicitConversion: true,
+        exposeDefaultValues: true,
+      });
+
+      const errors = await validate(dto, {
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        forbidUnknownValues: true,
+      });
+
+      if (errors.length > 0) {
+        const mensajes = errors.flatMap(err =>
+          err.constraints ? Object.values(err.constraints) : []
+        );
+
+        res.status(400).json({
+          error: 'Validation error',
+          details: mensajes,
+        });
+        return;
+      }
+
+      // ✅ sobreescribir con el DTO limpio / tipado
+      (req as any)[source] = dto;
+
+      next();
+    } catch (error: any) {
+      // 🔥 nunca más un 500 silencioso
+      console.error('[validateDto]', error);
+      res.status(500).json({
+        error: 'Error validando la request',
+      });
     }
-    // ✅ sobreescribir con el DTO limpio/transformado
-    (req as any)[source] = dto;
-    next();
   };
 };

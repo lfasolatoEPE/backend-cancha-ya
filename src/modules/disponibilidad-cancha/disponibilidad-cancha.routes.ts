@@ -5,7 +5,8 @@ import { validateDto } from '../../utils/validate';
 import { CrearDisponibilidadLoteDto } from './dto/crear-disponibilidad-lote.dto';
 import { AvailabilityQueryDto } from './dto/availability-query.dto';
 import { authMiddleware } from '../../middlewares/auth.middleware';
-import { authorizeRoles } from '../../middlewares/role.middleware';
+import { authorizeAccess, authorizeRoles } from '../../middlewares/role.middleware';
+import { NivelAcceso } from '../../entities/Rol.entity';
 
 const router = Router();
 const controller = new DisponibilidadCanchaController(new DisponibilidadCanchaService());
@@ -14,7 +15,7 @@ const controller = new DisponibilidadCanchaController(new DisponibilidadCanchaSe
 router.post(
   '/',
   authMiddleware,
-  authorizeRoles('admin', 'admin-club'),
+  authorizeAccess(NivelAcceso.Admin, NivelAcceso.AdminClub),
   validateDto(CrearDisponibilidadLoteDto),
   controller.crear
 );
@@ -23,7 +24,7 @@ router.post(
 router.get(
   '/availability',
   authMiddleware,
-  validateDto(AvailabilityQueryDto),
+  validateDto(AvailabilityQueryDto, 'query'),
   controller.disponibilidadRango
 );
 
@@ -34,7 +35,7 @@ router.get('/:canchaId', authMiddleware, controller.listarPorCancha);
 router.delete(
   '/:id',
   authMiddleware,
-  authorizeRoles('admin', 'admin-club'),
+  authorizeAccess(NivelAcceso.Admin, NivelAcceso.AdminClub),
   controller.eliminar
 );
 
