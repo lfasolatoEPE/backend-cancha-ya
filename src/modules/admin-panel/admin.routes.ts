@@ -2,13 +2,15 @@ import { Router } from 'express';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { authMiddleware } from '../../middlewares/auth.middleware';
-import { authorizeRoles } from '../../middlewares/role.middleware';
+import { authorizeAccess } from '../../middlewares/role.middleware';
+import { NivelAcceso } from '../../entities/Rol.entity';
 
 const router = Router();
 const controller = new AdminController(new AdminService());
 
-// 🔒 Admin global y admin-club
-router.use(authMiddleware, authorizeRoles('admin', 'admin-club'));
+
+router.use(authMiddleware, authorizeAccess(NivelAcceso.Admin, NivelAcceso.AdminClub));
+
 
 router.get('/resumen', controller.resumenGeneral);
 router.get('/top-jugadores', controller.topJugadores);

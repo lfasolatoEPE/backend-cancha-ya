@@ -23,14 +23,8 @@ export const authMiddleware: RequestHandler = (req, res, next) => {
       id: payload.sub ?? payload.id,
       personaId: payload.personaId,
       email: payload.email,
-
-      // (informativo)
       rol: payload.rol,
-
-      // ✅ NUEVO (lo que se usa para permisos)
       nivelAcceso: payload.nivelAcceso,
-
-      // admin-club scope
       clubIds: payload.clubIds ?? [],
     };
 

@@ -1,9 +1,11 @@
 import { Request, Response } from 'express';
 import { AdminService } from './admin.service';
+import { NivelAcceso } from '../../entities/Rol.entity';
 
 type JwtUser = {
   id: string;
-  rol: string;
+  rol: string; // nombre del rol (informativo)
+  nivelAcceso: NivelAcceso; // <- ESTE MANDA
   personaId: string;
   email: string;
   clubIds?: string[];
@@ -16,11 +18,12 @@ export class AdminController {
   private getScope(req: Request): { clubIds?: string[] } {
     const user = (req as any).user as JwtUser | undefined;
     if (!user) return {};
-    if (user.rol === 'admin-club') {
-      // si por algún motivo viene undefined, devolvemos array vacío → sin datos
+
+    if (user.nivelAcceso === NivelAcceso.AdminClub) {
       return { clubIds: user.clubIds ?? [] };
     }
-    // admin global: sin restricción
+
+    // admin global
     return {};
   }
 
