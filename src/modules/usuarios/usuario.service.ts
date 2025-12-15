@@ -6,6 +6,8 @@ import { Rol } from '../../entities/Rol.entity';
 import { PerfilCompetitivo } from '../../entities/PerfilCompetitivo.entity';
 import bcrypt from 'bcryptjs';
 import { isDuplicateError, normEmail } from '../../utils/db';
+import { NivelAcceso } from '../../entities/Rol.entity';
+import { In } from 'typeorm';
 
 const usuarioRepo = AppDataSource.getRepository(Usuario);
 const personaRepo = AppDataSource.getRepository(Persona);
@@ -200,4 +202,55 @@ export class UsuarioService {
       adminClubs: usuario.adminClubs?.map(c => ({ id: c.id, nombre: c.nombre })) ?? [],
     }
   };
+
+  async actualizarNivelAcceso(opts: {
+    targetUserId: string;
+    actorUserId: string;
+    nivelAcceso: NivelAcceso;
+    clubIds?: string[];
+  }) {
+    const { targetUserId, actorUserId, nivelAcceso, clubIds } = opts;
+
+    // ✅ No permitir que un admin se baje a sí mismo
+    if (targetUserId === actorUserId) {
+      throw new Error('No puedes cambiar tu propio nivel de acceso');
+    }
+
+    const user = await usuarioRepo.findOne({
+      where: { id: targetUserId },
+      relations: ['persona', 'rol', 'adminClubs'],
+    });
+    if (!user) throw new Error('Usuario no encontrado');
+
+    // ✅ Validación fuerte para admin-club
+    if (nivelAcceso === 'admin-club') {
+      if (!clubIds || clubIds.length === 0) {
+        throw new Error('Para admin-club debes enviar clubIds');
+      }
+
+      const clubs = await clubRepo.find({ where: { id: In(clubIds) } });
+      if (clubs.length !== clubIds.length) {
+        const missing = clubIds.filter(id => !clubs.find(c => c.id === id));
+        throw new Error(`Club(s) no encontrado(s): ${missing.join(', ')}`);
+      }
+
+      user.nivelAcceso = nivelAcceso;
+      user.adminClubs = clubs;
+    } else {
+      // usuario o admin => limpiar scope
+      user.nivelAcceso = nivelAcceso;
+      user.adminClubs = [];
+    }
+
+    const saved = await usuarioRepo.save(user);
+
+    return {
+      id: saved.id,
+      personaId: saved.persona?.id,
+      email: saved.persona?.email,
+      rol: saved.rol?.nombre,
+      nivelAcceso: saved.nivelAcceso,
+      clubIds: Array.isArray(saved.adminClubs) ? saved.adminClubs.map(c => c.id) : [],
+    };
+  }
 }

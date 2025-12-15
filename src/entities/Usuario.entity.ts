@@ -16,6 +16,7 @@ import { Rol } from './Rol.entity';
 import { PerfilCompetitivo } from './PerfilCompetitivo.entity';
 import { Exclude } from 'class-transformer';
 import { Club } from './Club.entity'; // ⬅️ NUEVO
+import { NivelAcceso } from './Rol.entity';
 
 @Entity()
 export class Usuario {
@@ -36,6 +37,9 @@ export class Usuario {
   @ManyToOne(() => Rol, { eager: true })
   @JoinColumn()
   rol!: Rol;
+
+  @Column({ type: 'enum', enum: NivelAcceso, default: NivelAcceso.Usuario })
+  nivelAcceso!: NivelAcceso;
 
   // ⬅️ NUEVO: clubes que administra (solo para rol 'admin-club')
   @ManyToMany(() => Club, (club) => club.adminUsers, { eager: true })

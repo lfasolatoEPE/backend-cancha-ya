@@ -35,7 +35,7 @@ export class AuthService {
   
   private signAccessToken(user: Usuario) {
     const rolNombre = user.rol?.nombre;
-    const nivelAcceso = user.rol?.nivelAcceso as NivelAcceso | undefined;
+    const nivelAcceso = (user as any).nivelAcceso ?? (user.rol?.nivelAcceso as NivelAcceso | undefined);
 
     const clubIds = Array.isArray(user.adminClubs)
       ? user.adminClubs.map((c) => c.id)
