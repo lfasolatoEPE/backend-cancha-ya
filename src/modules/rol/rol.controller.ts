@@ -13,7 +13,7 @@ export class RolController {
   crear = async (req: Request, res: Response) => {
     try {
       const dto = req.body as CrearRolDto;
-      const rol = await this.service.crearRol(dto.nombre);
+      const rol = await this.service.crearRol(dto);
       res.status(201).json(rol);
     } catch (e: any) {
       res.status(400).json({ error: e.message });

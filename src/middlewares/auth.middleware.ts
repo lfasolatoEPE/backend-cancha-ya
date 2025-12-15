@@ -1,4 +1,3 @@
-// src/middlewares/auth.middleware.ts
 import { RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
 
@@ -21,11 +20,18 @@ export const authMiddleware: RequestHandler = (req, res, next) => {
     const payload = jwt.verify(token, JWT_SECRET) as any;
 
     (req as any).user = {
-      id: payload.sub ?? payload.id,        // por si algún token viejo tenía 'id'
+      id: payload.sub ?? payload.id,
       personaId: payload.personaId,
       email: payload.email,
+
+      // (informativo)
       rol: payload.rol,
-      clubIds: payload.clubIds ?? [],       // ⬅️ importante para admin-club
+
+      // ✅ NUEVO (lo que se usa para permisos)
+      nivelAcceso: payload.nivelAcceso,
+
+      // admin-club scope
+      clubIds: payload.clubIds ?? [],
     };
 
     next();

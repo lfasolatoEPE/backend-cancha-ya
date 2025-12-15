@@ -2,7 +2,7 @@
 import { AppDataSource } from '../../database/data-source';
 import { Usuario } from '../../entities/Usuario.entity';
 import { Persona } from '../../entities/Persona.entity';
-import { Rol } from '../../entities/Rol.entity';
+import { NivelAcceso, Rol } from '../../entities/Rol.entity';
 import { RefreshToken } from '../../entities/RefreshToken.entity';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -32,18 +32,28 @@ export class AuthService {
    * - email      → email de Persona
    * - clubIds    → lista de clubes que administra (puede ser [])
    */
+  
   private signAccessToken(user: Usuario) {
-    const clubIds = (user.adminClubs ?? []).map((c) => c.id);
+    const rolNombre = user.rol?.nombre;
+    const nivelAcceso = user.rol?.nivelAcceso as NivelAcceso | undefined;
+
+    const clubIds = Array.isArray(user.adminClubs)
+      ? user.adminClubs.map((c) => c.id)
+      : [];
 
     const payload = {
-      sub: user.id,
-      rol: user.rol.nombre,
+      id: user.id,
       personaId: user.persona.id,
       email: user.persona.email,
-      clubIds,
+      rol: rolNombre,            // "recepcionista", "admin", etc (informativo)
+      nivelAcceso,               // "usuario" | "admin-club" | "admin" (lo que manda)
+      clubIds,                   // scope para admin-club
     };
 
-    return jwt.sign(payload, JWT_SECRET!, { expiresIn: `${ACCESS_TTL_MIN}m` });
+    return jwt.sign(payload, JWT_SECRET!, {
+      subject: user.id,
+      expiresIn: `${ACCESS_TTL_MIN}m`,
+    });
   }
 
   async register(data: { nombre: string; apellido: string; email: string; password: string }) {
@@ -101,8 +111,8 @@ export class AuthService {
       .createQueryBuilder('u')
       .leftJoinAndSelect('u.persona', 'p')
       .leftJoinAndSelect('u.rol', 'r')
-      .leftJoinAndSelect('u.adminClubs', 'adminClubs') // ⬅️ importante para clubIds
-      .addSelect('u.passwordHash') // necesario para bcrypt.compare
+      .leftJoinAndSelect('u.adminClubs', 'adminClubs')
+      .addSelect('u.passwordHash')
       .where('LOWER(p.email) = :email', { email: emailN })
       .getOne();
 
@@ -114,6 +124,9 @@ export class AuthService {
       await usuarioRepo.save(user);
       throw new Error('Credenciales inválidas');
     }
+
+    if (!user.rol) throw new Error('Usuario sin rol asignado');
+    if (!user.rol.nivelAcceso) throw new Error('Rol sin nivelAcceso configurado');
 
     user.failedLoginAttempts = 0;
     user.lastLoginAt = new Date();

@@ -1,14 +1,13 @@
-import { IsISO8601, IsOptional, IsUUID, ValidateIf } from 'class-validator';
+import { IsISO8601, IsOptional, IsUUID } from 'class-validator';
+import { AtLeastOne } from '../../../utils/validators/at-least-one';
 
+@AtLeastOne(['disponibilidadId', 'fechaHora'])
 export class ActualizarReservaDto {
   @IsOptional()
-  @IsUUID()
+  @IsUUID('4')
   disponibilidadId?: string;
 
   @IsOptional()
   @IsISO8601()
   fechaHora?: string;
-
-  @ValidateIf(o => !o.disponibilidadId && !o.fechaHora)
-  dummy?: any; // solo para disparar validación si ambos faltan
 }

@@ -1,12 +1,14 @@
-import { IsUUID, IsISO8601 } from 'class-validator';
+import { IsISO8601, IsOptional, IsUUID } from 'class-validator';
 
 export class CrearReservaDto {
-  @IsUUID()
-  personaId!: string;
-
-  @IsUUID()
+  @IsUUID('4')
   disponibilidadId!: string;
 
-  @IsISO8601({}, { message: 'fechaHora debe estar en formato ISO8601 (ej: 2025-07-20T18:00:00Z)' })
+  @IsISO8601()
   fechaHora!: string;
+
+  // 👇 solo admin/admin-club pueden mandarlo para asignar reserva
+  @IsOptional()
+  @IsUUID('4')
+  personaId?: string;
 }
