@@ -80,21 +80,22 @@ export class AdminService {
     const totalReservas = Number(reservasRows.totalReservas || 0);
     const totalUsuarios = Number(reservasRows.totalPersonas || 0);
 
-    // deuda: de esas personas solamente
-    const deudaRow = await deudaRepo.createQueryBuilder('d')
-      .leftJoin('d.persona','p')
+    // deuda: de esas personas solamente (personas que reservaron en esos clubes)
+    const sub = reservaRepo
+      .createQueryBuilder('r2')
+      .leftJoin('r2.disponibilidad', 'd2')
+      .leftJoin('d2.cancha', 'c2')
+      .leftJoin('c2.club', 'club2')
+      .select('r2."personaId"')
+      .where('club2.id IN (:...clubIds)', { clubIds });
+
+    const deudaRow = await deudaRepo
+      .createQueryBuilder('d')
+      .leftJoin('d.persona', 'p')
       .where('d.pagada = false')
-      .andWhere('p.id IN ' +
-        reservaRepo.createQueryBuilder('r2')
-          .leftJoin('r2.disponibilidad','d2')
-          .leftJoin('d2.cancha','c2')
-          .leftJoin('c2.club','club2')
-          .select('r2."personaId"')
-          .where('club2.id IN (:...clubIds)', { clubIds })
-          .getQuery()
-      )
-      .setParameters({ clubIds })
-      .select('COALESCE(SUM(d.monto),0)','total')
+      .andWhere(`p.id IN (${sub.getQuery()})`)
+      .setParameters(sub.getParameters()) // 👈 importantísimo
+      .select('COALESCE(SUM(d.monto),0)', 'total')
       .getRawOne();
 
     return {
@@ -177,30 +178,30 @@ export class AdminService {
     }
 
     // admin-club → sólo personas con reservas en sus clubes
-    const rows = await deudaRepo.createQueryBuilder('d')
-      .leftJoin('d.persona','p')
+    const sub = reservaRepo
+      .createQueryBuilder('r2')
+      .leftJoin('r2.disponibilidad', 'd2')
+      .leftJoin('d2.cancha', 'c2')
+      .leftJoin('c2.club', 'club2')
+      .select('r2."personaId"')
+      .where('club2.id IN (:...clubIds)', { clubIds });
+
+    const rows = await deudaRepo
+      .createQueryBuilder('d')
+      .leftJoin('d.persona', 'p')
       .where('d.pagada = false')
-      .andWhere('p.id IN ' +
-        reservaRepo.createQueryBuilder('r2')
-          .leftJoin('r2.disponibilidad','d2')
-          .leftJoin('d2.cancha','c2')
-          .leftJoin('c2.club','club2')
-          .select('r2."personaId"')
-          .where('club2.id IN (:...clubIds)', { clubIds })
-          .getQuery()
-      )
-      .setParameters({ clubIds })
-      .select('p.id','personaId')
-      .addSelect('p.nombre','nombre')
-      .addSelect('p.email','email')
-      .addSelect('SUM(d.monto)','totalDeuda')
+      .andWhere(`p.id IN (${sub.getQuery()})`)
+      .setParameters(sub.getParameters()) // 👈 importantísimo
+      .select('p.id', 'personaId')
+      .addSelect('p.nombre', 'nombre')
+      .addSelect('p.email', 'email')
+      .addSelect('SUM(d.monto)', 'totalDeuda')
       .groupBy('p.id')
-      .orderBy('"totalDeuda"','DESC')
+      .orderBy('"totalDeuda"', 'DESC')
       .getRawMany();
 
     return rows;
   }
-
   // ————————————————— HELPERS REPORTES —————————————————
 
   private bucketExpr(granularity: Range['granularity'], tz: string) {
