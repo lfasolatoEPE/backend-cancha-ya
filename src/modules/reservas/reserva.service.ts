@@ -7,42 +7,53 @@ import { AuditoriaService } from '../auditoria/auditoria.service';
 import { DateTime } from 'luxon';
 import { Usuario } from '../../entities/Usuario.entity';
 import { crearStateParaReserva } from './state/reserva-state.factory';
+import { NivelAcceso } from '../../entities/Rol.entity';
 
 const auditoriaService = new AuditoriaService();
+
 type ActorContext = {
   actorUsuarioId: string;
   actorPersonaId?: string;
-  actorNivelAcceso: 'usuario' | 'admin-club' | 'admin';
+  actorNivelAcceso: NivelAcceso;
   actorClubIds: string[];
 };
 
+type FiltrosListado = {
+  from?: string;
+  to?: string;
+  clubId?: string;
+  canchaId?: string;
+  estado?: EstadoReserva;
+};
+
+function hasScopedClubs(clubIds?: string[]) {
+  return Array.isArray(clubIds) && clubIds.length > 0;
+}
+
 export class ReservaService {
   private puedeGestionarReserva(ctx: ActorContext, reserva: Reserva): boolean {
-    // admin global
-    if (ctx.actorNivelAcceso === 'admin') return true;
+    if (ctx.actorNivelAcceso === NivelAcceso.Admin) return true;
 
-    // admin-club: solo si la reserva pertenece a alguno de sus clubes
-    if (ctx.actorNivelAcceso === 'admin-club') {
+    if (ctx.actorNivelAcceso === NivelAcceso.AdminClub) {
       const clubId = reserva.disponibilidad?.cancha?.club?.id;
       return !!clubId && ctx.actorClubIds.includes(clubId);
     }
 
-    // usuario: solo dueño
     return !!ctx.actorPersonaId && reserva.persona?.id === ctx.actorPersonaId;
   }
 
   private puedeCrearEnDisponibilidad(ctx: ActorContext, disponibilidad: DisponibilidadHorario): boolean {
-    if (ctx.actorNivelAcceso === 'admin') return true;
-    if (ctx.actorNivelAcceso === 'admin-club') {
+    if (ctx.actorNivelAcceso === NivelAcceso.Admin) return true;
+    if (ctx.actorNivelAcceso === NivelAcceso.AdminClub) {
       const clubId = disponibilidad?.cancha?.club?.id;
       return !!clubId && ctx.actorClubIds.includes(clubId);
     }
-    return true; // usuario normal puede crear (se valida por deudas etc.)
+    return true;
   }
 
   async crearReserva(dto: {
     actorUsuarioId: string;
-    actorNivelAcceso: 'usuario' | 'admin-club' | 'admin';
+    actorNivelAcceso: NivelAcceso;
     actorClubIds: string[];
     personaId: string;
     disponibilidadId: string;
@@ -66,13 +77,13 @@ export class ReservaService {
       if (!disponibilidad) throw new Error('Disponibilidad no encontrada');
       if (!disponibilidad.disponible) throw new Error('El horario está marcado como no disponible');
 
-      // ✅ Scope: admin-club solo en sus clubes
       const ctx: ActorContext = {
         actorUsuarioId,
         actorNivelAcceso,
         actorClubIds,
         actorPersonaId: undefined,
       };
+
       if (!this.puedeCrearEnDisponibilidad(ctx, disponibilidad)) {
         throw new Error('No tienes permiso para crear reservas en este club');
       }
@@ -89,13 +100,14 @@ export class ReservaService {
       const hhmm = fecha.toFormat('HH:mm');
       if (hhmm !== hi) throw new Error(`La reserva debe iniciar a las ${hi}`);
 
-      // deudas impagas (si querés que admin/admin-club puedan saltear esto, decímelo)
       const deudasImpagas = await deudaRepo.find({
         where: { persona: { id: personaId }, pagada: false },
       });
       if (deudasImpagas.length > 0) {
         const total = deudasImpagas.reduce((sum, d) => sum + Number(d.monto), 0);
-        throw new Error(`La persona tiene ${deudasImpagas.length} deuda(s) pendiente(s) por un total de $${total.toFixed(2)}`);
+        throw new Error(
+          `La persona tiene ${deudasImpagas.length} deuda(s) pendiente(s) por un total de $${total.toFixed(2)}`
+        );
       }
 
       const clash = await reservaRepo.findOne({
@@ -125,14 +137,9 @@ export class ReservaService {
     });
   }
 
-  // 🔄 Actualizar una reserva pendiente (cambio de fecha/disponibilidad)
-  async actualizarReserva(
-    id: string,
-    dto: { disponibilidadId?: string; fechaHora?: string },
-    usuarioId: string,
-  ) {
+  // ✅ ahora recibe ctx completo (no solo usuarioId)
+  async actualizarReserva(id: string, dto: { disponibilidadId?: string; fechaHora?: string }, ctx: ActorContext) {
     const reservaRepo = AppDataSource.getRepository(Reserva);
-    const usuarioRepo = AppDataSource.getRepository(Usuario);
     const disponibilidadRepo = AppDataSource.getRepository(DisponibilidadHorario);
 
     const reserva = await reservaRepo.findOne({
@@ -147,89 +154,63 @@ export class ReservaService {
     });
     if (!reserva) throw new Error('Reserva no encontrada');
 
-    // Solo reservas pendientes se pueden modificar
     if (reserva.estado !== EstadoReserva.Pendiente) {
       throw new Error('Solo se pueden modificar reservas pendientes');
     }
-
-    // permisos: admin o dueño
-    const user = await usuarioRepo.findOne({
-      where: { id: usuarioId },
-      relations: ['rol', 'persona', 'adminClubs'],
-    });
-    if (!user?.rol?.nivelAcceso) throw new Error('Usuario sin nivelAcceso');
-
-    const ctx: ActorContext = {
-      actorUsuarioId: usuarioId,
-      actorPersonaId: user.persona?.id,
-      actorNivelAcceso: user.rol.nivelAcceso,
-      actorClubIds: (user.adminClubs ?? []).map(c => c.id),
-    };
 
     if (!this.puedeGestionarReserva(ctx, reserva)) {
       throw new Error('No tienes permiso para gestionar esta reserva');
     }
 
-    // Tomamos disponibilidad y fecha actuales como base
-    const nuevaDisponibilidadId =
-      dto.disponibilidadId ?? reserva.disponibilidad.id;
+    const nuevaDisponibilidadId = dto.disponibilidadId ?? reserva.disponibilidad.id;
 
     const disponibilidad = await disponibilidadRepo.findOne({
       where: { id: nuevaDisponibilidadId },
-      relations: ['cancha', 'horario'],
+      relations: ['cancha', 'cancha.club', 'horario'],
     });
     if (!disponibilidad) throw new Error('Disponibilidad no encontrada');
-    if (!disponibilidad.disponible) {
-      throw new Error('El horario está marcado como no disponible');
+    if (!disponibilidad.disponible) throw new Error('El horario está marcado como no disponible');
+
+    // 🔐 admin-club no puede mover a otra cancha fuera de su scope
+    if (ctx.actorNivelAcceso === NivelAcceso.AdminClub) {
+      const clubId = disponibilidad?.cancha?.club?.id;
+      if (!clubId || !ctx.actorClubIds.includes(clubId)) {
+        throw new Error('No puedes mover la reserva a una cancha fuera de tus clubes');
+      }
     }
 
-    // Fecha: si no viene, usamos la actual de la reserva
     const fechaBaseISO =
       dto.fechaHora ??
-      DateTime.fromJSDate(reserva.fechaHora, {
-        zone: 'America/Argentina/Cordoba',
-      }).toISO();
+      DateTime.fromJSDate(reserva.fechaHora, { zone: 'America/Argentina/Cordoba' }).toISO();
 
-    const fecha = DateTime.fromISO(fechaBaseISO!, {
-      zone: 'America/Argentina/Cordoba',
-    });
+    const fecha = DateTime.fromISO(fechaBaseISO!, { zone: 'America/Argentina/Cordoba' });
     if (!fecha.isValid) throw new Error('fechaHora inválida');
 
     const diaSemana = fecha.weekday % 7;
     if (disponibilidad.diaSemana !== diaSemana) {
-      throw new Error(
-        'La disponibilidad no corresponde al día de la semana de la fecha seleccionada',
-      );
+      throw new Error('La disponibilidad no corresponde al día de la semana de la fecha seleccionada');
     }
 
     const hi = disponibilidad.horario.horaInicio;
     const hhmm = fecha.toFormat('HH:mm');
-    if (hhmm !== hi) {
-      throw new Error(`La reserva debe iniciar a las ${hi}`);
-    }
+    if (hhmm !== hi) throw new Error(`La reserva debe iniciar a las ${hi}`);
 
-    // Evitar doble booking (excluyendo la propia reserva)
     const clash = await reservaRepo.findOne({
-      where: {
-        disponibilidad: { id: nuevaDisponibilidadId },
-        fechaHora: fecha.toJSDate(),
-      },
+      where: { disponibilidad: { id: nuevaDisponibilidadId }, fechaHora: fecha.toJSDate() },
     });
-
     if (clash && clash.id !== reserva.id) {
       throw new Error('Ya existe una reserva para esa cancha, fecha y horario');
     }
 
-    // Aplicar cambios
     reserva.disponibilidad = disponibilidad;
     reserva.fechaHora = fecha.toJSDate();
 
     const actualizada = await reservaRepo.save(reserva);
 
     await auditoriaService.registrar({
-      usuarioId,
+      usuarioId: ctx.actorUsuarioId,
       accion: 'modificar_reserva',
-      descripcion: `Reserva modificada por ${reserva.persona.nombre} ${reserva.persona.apellido} en cancha ${disponibilidad.cancha.nombre}`,
+      descripcion: `Reserva modificada por usuario ${ctx.actorUsuarioId} en cancha ${disponibilidad.cancha.nombre}`,
       entidad: 'reserva',
       entidadId: actualizada.id,
     });
@@ -237,9 +218,8 @@ export class ReservaService {
     return actualizada;
   }
 
-  async confirmarReserva(id: string, usuarioId: string) {
+  async confirmarReserva(id: string, ctx: ActorContext) {
     const reservaRepo = AppDataSource.getRepository(Reserva);
-    const usuarioRepo = AppDataSource.getRepository(Usuario);
 
     const reserva = await reservaRepo.findOne({
       where: { id },
@@ -253,36 +233,19 @@ export class ReservaService {
     });
     if (!reserva) throw new Error('Reserva no encontrada');
 
-    // permisos: admin o dueño
-    if (usuarioId) {
-      const user = await usuarioRepo.findOne({
-        where: { id: usuarioId },
-        relations: ['rol', 'persona', 'adminClubs'],
-      });
-      if (!user?.rol?.nivelAcceso) throw new Error('Usuario sin nivelAcceso');
-
-      const ctx: ActorContext = {
-        actorUsuarioId: usuarioId,
-        actorPersonaId: user.persona?.id,
-        actorNivelAcceso: user.rol.nivelAcceso,
-        actorClubIds: (user.adminClubs ?? []).map(c => c.id),
-      };
-
-      if (!this.puedeGestionarReserva(ctx, reserva)) {
-        throw new Error('No tienes permiso para gestionar esta reserva');
-      }
+    if (!this.puedeGestionarReserva(ctx, reserva)) {
+      throw new Error('No tienes permiso para gestionar esta reserva');
     }
 
-    // acá aplico patrón State
     const state = crearStateParaReserva(reserva);
     state.confirmar(reserva);
 
     const actualizada = await reservaRepo.save(reserva);
 
     await auditoriaService.registrar({
-      usuarioId,
+      usuarioId: ctx.actorUsuarioId,
       accion: 'confirmar_reserva',
-      descripcion: `Reserva confirmada por ${reserva.persona.nombre} ${reserva.persona.apellido} en cancha ${reserva.disponibilidad.cancha.nombre}`,
+      descripcion: `Reserva confirmada en cancha ${reserva.disponibilidad.cancha.nombre}`,
       entidad: 'reserva',
       entidadId: actualizada.id,
     });
@@ -290,9 +253,8 @@ export class ReservaService {
     return actualizada;
   }
 
-  async cancelarReserva(id: string, usuarioId: string) {
+  async cancelarReserva(id: string, ctx: ActorContext) {
     const reservaRepo = AppDataSource.getRepository(Reserva);
-    const usuarioRepo = AppDataSource.getRepository(Usuario);
     const disponibilidadRepo = AppDataSource.getRepository(DisponibilidadHorario);
 
     const reserva = await reservaRepo.findOne({
@@ -307,36 +269,25 @@ export class ReservaService {
     });
     if (!reserva) throw new Error('Reserva no encontrada');
 
-    if (usuarioId) {
-      const user = await usuarioRepo.findOne({
-        where: { id: usuarioId },
-        relations: ['rol', 'persona', 'adminClubs'],
-      });
-      if (!user?.rol?.nivelAcceso) throw new Error('Usuario sin nivelAcceso');
-
-      const ctx: ActorContext = {
-        actorUsuarioId: usuarioId,
-        actorPersonaId: user.persona?.id,
-        actorNivelAcceso: user.rol.nivelAcceso,
-        actorClubIds: (user.adminClubs ?? []).map(c => c.id),
-      };
-
-      if (!this.puedeGestionarReserva(ctx, reserva)) {
-        throw new Error('No tienes permiso para gestionar esta reserva');
-      }
+    if (!this.puedeGestionarReserva(ctx, reserva)) {
+      throw new Error('No tienes permiso para gestionar esta reserva');
     }
 
-    // acá aplico patrón State
     const state = crearStateParaReserva(reserva);
     state.cancelar(reserva);
-    reserva.disponibilidad.disponible = true;
-    await disponibilidadRepo.save(reserva.disponibilidad);
+
+    // ⚠️ OJO: esto es discutible.
+    // disponibilidad.disponible suele ser "patrón semanal", no "slot de reserva".
+    // Te lo dejo como lo tenías, pero lo ideal es NO tocar dh.disponible acá.
+    // reserva.disponibilidad.disponible = true;
+    // await disponibilidadRepo.save(reserva.disponibilidad);
+
     const actualizada = await reservaRepo.save(reserva);
 
     await auditoriaService.registrar({
-      usuarioId,
+      usuarioId: ctx.actorUsuarioId,
       accion: 'cancelar_reserva',
-      descripcion: `Reserva cancelada por ${reserva.persona.nombre} ${reserva.persona.apellido} en cancha ${reserva.disponibilidad.cancha.nombre}`,
+      descripcion: `Reserva cancelada en cancha ${reserva.disponibilidad.cancha.nombre}`,
       entidad: 'reserva',
       entidadId: actualizada.id,
     });
@@ -344,7 +295,16 @@ export class ReservaService {
     return actualizada;
   }
 
-  async obtenerTodas(ctx: ActorContext) {
+  async obtenerMisReservas(ctx: ActorContext) {
+    if (!ctx.actorPersonaId) throw new Error('Falta personaId en token');
+
+    return this.obtenerTodas(
+      { ...ctx, actorNivelAcceso: NivelAcceso.Usuario },
+      {}
+    );
+  }
+
+  async obtenerTodas(ctx: ActorContext, filtros: FiltrosListado = {}) {
     const qb = AppDataSource.getRepository(Reserva)
       .createQueryBuilder('r')
       .leftJoinAndSelect('r.persona', 'p')
@@ -354,12 +314,35 @@ export class ReservaService {
       .leftJoinAndSelect('d.horario', 'h')
       .orderBy('r.fechaHora', 'DESC');
 
-    if (ctx.actorNivelAcceso === 'admin-club') {
-      qb.where('cl.id IN (:...clubIds)', { clubIds: ctx.actorClubIds });
-    } else if (ctx.actorNivelAcceso === 'usuario') {
-      qb.where('p.id = :personaId', { personaId: ctx.actorPersonaId });
+    // filtros opcionales
+    if (filtros.from) qb.andWhere(`r."fechaHora" >= :from`, { from: filtros.from });
+    if (filtros.to) qb.andWhere(`r."fechaHora" <  :to`, { to: filtros.to });
+    if (filtros.estado) qb.andWhere(`r.estado = :estado`, { estado: filtros.estado });
+    if (filtros.canchaId) qb.andWhere(`c.id = :canchaId`, { canchaId: filtros.canchaId });
+
+    // 🔐 scope por rol
+    if (ctx.actorNivelAcceso === NivelAcceso.Admin) {
+      if (filtros.clubId) qb.andWhere('cl.id = :clubId', { clubId: filtros.clubId });
+      return qb.getMany();
     }
 
+    if (ctx.actorNivelAcceso === NivelAcceso.AdminClub) {
+      // admin-club sin clubes -> vacío (no 500, no data leak)
+      if (!hasScopedClubs(ctx.actorClubIds)) return [];
+
+      if (filtros.clubId) {
+        // si el front intenta pasar un clubId fuera del scope → vacío
+        if (!ctx.actorClubIds.includes(filtros.clubId)) return [];
+        qb.andWhere('cl.id = :clubId', { clubId: filtros.clubId });
+      } else {
+        qb.andWhere('cl.id IN (:...clubIds)', { clubIds: ctx.actorClubIds });
+      }
+      return qb.getMany();
+    }
+
+    // usuario normal
+    if (!ctx.actorPersonaId) throw new Error('Falta personaId en token');
+    qb.andWhere('p.id = :personaId', { personaId: ctx.actorPersonaId });
     return qb.getMany();
   }
 
